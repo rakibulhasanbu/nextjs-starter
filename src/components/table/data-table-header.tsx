@@ -1,58 +1,47 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
-import { Text } from "@/components/ui/text";
 
 type DataTableHeaderProps = {
-  title?: string;
-  description?: string;
-  /** Search box, filters, view options, action buttons, etc. */
-  children?: React.ReactNode;
-  className?: string;
+    /** Left cluster — search box, filter selects/facets (things that narrow the view). */
+    filters?: React.ReactNode;
+    /** Right cluster — view options, primary actions like "Add" (things that act). */
+    actions?: React.ReactNode;
+    className?: string;
 };
 
 /**
- * Layout wrapper for a table's title/description plus its toolbar (search,
- * filters, view options). Purely presentational — place it above `<DataTable />`:
+ * Layout wrapper for a table's toolbar. Purely presentational — place it
+ * above `<DataTable />`. The page's own title/description belongs in
+ * `<PageHeader />`, not here.
  *
  * ```tsx
- * <DataTableHeader title="Users" description="Manage your team members">
- *   <DataTableSearch />
- *   <DataTableFilter columnId="status" title="Status" options={statusOptions} />
- *   <DataTableViewOptions />
- * </DataTableHeader>
+ * <DataTableHeader
+ *   filters={
+ *     <>
+ *       <DataTableSearch />
+ *       <DataTableFilter columnId="status" title="Status" options={statusOptions} />
+ *     </>
+ *   }
+ *   actions={<Button>Add</Button>}
+ * />
  * <DataTable />
  * ```
  */
-export const DataTableHeader = ({
-  title,
-  description,
-  children,
-  className,
-}: DataTableHeaderProps) => {
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
-        !title && !description && "sm:justify-end",
-        className
-      )}
-    >
-      {(title || description) && (
-        <div className="space-y-1">
-          {title && (
-            <Text variant="h4" render={<h2 />} className="text-lg sm:text-lg">
-              {title}
-            </Text>
-          )}
-          {description && (
-            <Text variant="small" tone="muted" weight="normal">
-              {description}
-            </Text>
-          )}
+export const DataTableHeader = ({ filters, actions, className }: DataTableHeaderProps) => {
+    return (
+        <div
+            className={cn(
+                "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+                className
+            )}
+        >
+            <div className="flex flex-wrap items-center gap-2">{filters}</div>
+            {actions && (
+                <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                    {actions}
+                </div>
+            )}
         </div>
-      )}
-      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
-    </div>
-  );
+    );
 };

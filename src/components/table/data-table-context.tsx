@@ -35,10 +35,10 @@ const DataTableProviderContent = <TData extends RowData>({ children, ...options 
  *
  * ```tsx
  * <DataTableProvider data={users} columns={columns}>
- *   <DataTableHeader title="Users" description="Manage your team">
- *     <DataTableSearch />
- *     <DataTableViewOptions />
- *   </DataTableHeader>
+ *   <DataTableHeader
+ *     filters={<DataTableSearch />}
+ *     actions={<DataTableViewOptions />}
+ *   />
  *   <DataTable />
  * </DataTableProvider>
  * ```
