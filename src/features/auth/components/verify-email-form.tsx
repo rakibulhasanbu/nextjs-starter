@@ -14,15 +14,14 @@ import { FieldDescription, FieldGroup } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { resendVerificationOtpAction, verifyEmailAction } from "@/features/auth/actions";
 import { otpFormSchema, OtpFormValues } from "@/features/auth/schemas";
-import { setUser } from "@/features/auth/slice";
-import { useAppDispatch, useAppSelector } from "@/redux/hook";
+import { useAuthStore } from "@/features/auth/store";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
 export const VerifyEmailForm = () => {
-  const dispatch = useAppDispatch();
+  const user = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
   const router = useRouter();
-  const user = useAppSelector((state) => state.auth.user);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -50,7 +49,7 @@ export const VerifyEmailForm = () => {
       return;
     }
 
-    dispatch(setUser({ ...user, isVerified: true }));
+    setUser({ ...user, isVerified: true });
     toast.add({ title: "Email verified", type: "success" });
     router.replace("/");
     router.refresh();

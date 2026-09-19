@@ -2,9 +2,8 @@
 
 import React, { useEffect, useRef } from "react";
 
-import { setState, setTokens, setUser } from "@/features/auth/slice";
+import { useAuthStore } from "@/features/auth/store";
 import { User } from "@/features/auth/types";
-import { useAppDispatch } from "@/redux/hook";
 
 type Props = {
     children: React.ReactNode;
@@ -19,23 +18,25 @@ export const TokenInitiatorInStore = ({
     refreshToken,
     user,
 }: Props) => {
-    const dispatch = useAppDispatch();
+    const setTokens = useAuthStore((state) => state.setTokens);
+    const setUser = useAuthStore((state) => state.setUser);
+    const setState = useAuthStore((state) => state.setState);
     const hasInitialized = useRef(false);
 
     useEffect(() => {
         if (hasInitialized.current) return;
 
         if (accessToken && refreshToken) {
-            dispatch(setTokens({ accessToken, refreshToken }));
+            setTokens({ accessToken, refreshToken });
             if (user) {
-                dispatch(setUser(user));
+                setUser(user);
             }
         } else {
-            dispatch(setState("success"));
+            setState("success");
         }
 
         hasInitialized.current = true;
-    }, [ accessToken, refreshToken, dispatch, user ]);
+    }, [ accessToken, refreshToken, user, setTokens, setUser, setState ]);
 
     return <>{ children }</>;
 };

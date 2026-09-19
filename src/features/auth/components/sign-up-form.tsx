@@ -13,11 +13,11 @@ import { FieldGroup } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { registerAction } from "@/features/auth/actions";
 import { signUpFormSchema, SignUpFormValues } from "@/features/auth/schemas";
-import { setTokens, setUser } from "@/features/auth/slice";
-import { useAppDispatch } from "@/redux/hook";
+import { useAuthStore } from "@/features/auth/store";
 
 export const SignUpForm = () => {
-  const dispatch = useAppDispatch();
+  const setTokens = useAuthStore((state) => state.setTokens);
+  const setUser = useAuthStore((state) => state.setUser);
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,12 +41,10 @@ export const SignUpForm = () => {
     }
 
     if (result.data.accessToken && result.data.refreshToken) {
-      dispatch(
-        setTokens({ accessToken: result.data.accessToken, refreshToken: result.data.refreshToken })
-      );
+      setTokens({ accessToken: result.data.accessToken, refreshToken: result.data.refreshToken });
     }
     if (result.data.user) {
-      dispatch(setUser(result.data.user));
+      setUser(result.data.user);
     }
 
     toast.add({ title: "Account created", description: "Let's verify your email address.", type: "success" });

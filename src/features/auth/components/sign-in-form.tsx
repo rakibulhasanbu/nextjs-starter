@@ -14,11 +14,11 @@ import { FieldGroup } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { loginAction } from "@/features/auth/actions";
 import { signInFormSchema, SignInFormValues } from "@/features/auth/schemas";
-import { setTokens, setUser } from "@/features/auth/slice";
-import { useAppDispatch } from "@/redux/hook";
+import { useAuthStore } from "@/features/auth/store";
 
 export const SignInForm = () => {
-  const dispatch = useAppDispatch();
+  const setTokens = useAuthStore((state) => state.setTokens);
+  const setUser = useAuthStore((state) => state.setUser);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,12 +39,10 @@ export const SignInForm = () => {
     }
 
     if (result.data.accessToken && result.data.refreshToken) {
-      dispatch(
-        setTokens({ accessToken: result.data.accessToken, refreshToken: result.data.refreshToken })
-      );
+      setTokens({ accessToken: result.data.accessToken, refreshToken: result.data.refreshToken });
     }
     if (result.data.user) {
-      dispatch(setUser(result.data.user));
+      setUser(result.data.user);
     }
 
     const callbackUrl = searchParams.get("callbackUrl") || "/";
