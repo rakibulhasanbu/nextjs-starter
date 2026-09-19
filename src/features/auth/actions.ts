@@ -1,41 +1,60 @@
 "use server"
 
-import { cookies } from "next/headers"
-
 import { config } from "@/config"
-import { User } from "@/features/auth/types"
+import { AuthResponse, User } from "@/features/auth/types"
+import {
+  clearAuthCookies,
+  getAccessTokenCookie,
+  setAuthCookies,
+} from "@/lib/auth-cookies"
 
-export const loginAction = async (email: string, password: string) => {
+const AUTH_ENDPOINTS = {
+  signIn: "/auth/signin",
+  signUp: "/auth/signup",
+  verifySignupToken: "/auth/verify-signup-token",
+  googleLogin: "/auth/google-login",
+} as const
+
+type AuthEndpoint = (typeof AUTH_ENDPOINTS)[keyof typeof AUTH_ENDPOINTS]
+
+type AuthActionResult<T> = { status: "success"; data: T } | { status: "error"; error: string }
+
+type AuthPayload = Partial<AuthResponse> & { user?: User }
+
+/**
+ * Single point where auth requests are made: hits `endpoint`, and if the
+ * response carries tokens/user, persists them via the cookie layer. Every
+ * auth server action below is just this call with a different endpoint/body.
+ */
+const authRequest = async <T extends AuthPayload>(
+  endpoint: AuthEndpoint,
+  body: unknown,
+  extraHeaders?: Record<string, string>
+): Promise<AuthActionResult<T>> => {
   try {
-    const response = await fetch(`${config.serverUrl}/auth/signin`, {
+    const response = await fetch(`${config.serverUrl}${endpoint}`, {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify(body),
       headers: {
         "Content-Type": "application/json",
+        ...extraHeaders,
       },
     })
 
     const data = await response.json()
 
     if (!response.ok) {
-      return {
-        status: "error",
-        error: data.message || "Invalid credentials",
-      }
+      return { status: "error", error: data.message || "Something went wrong" }
     }
 
-    const { accessToken, refreshToken, user } = data.data
+    const result = data.data as T
+    await setAuthCookies({
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      user: result.user,
+    })
 
-    await setTokensToCookies(accessToken, refreshToken)
-
-    if (user) {
-      await setUserToCookies(user)
-    }
-
-    return {
-      status: "success",
-      data: data.data,
-    }
+    return { status: "success", data: result }
   } catch (error) {
     console.error(error)
     return {
@@ -44,190 +63,39 @@ export const loginAction = async (email: string, password: string) => {
     }
   }
 }
+
+export const loginAction = (email: string, password: string) =>
+  authRequest(AUTH_ENDPOINTS.signIn, { email, password })
 
 interface RegisterActionProps {
   name: string
   email: string
   password: string
 }
-export const registerAction = async ({ name, email, password }: RegisterActionProps) => {
-  try {
-    const response = await fetch(`${config.serverUrl}/auth/signup`, {
-      method: "POST",
-      body: JSON.stringify({
-        name,
-        email,
-        password,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      return {
-        status: "error",
-        error: data.message || "Invalid credentials",
-      }
-    }
-
-    const { accessToken, refreshToken, user } = data.data
-
-    await setTokensToCookies(accessToken, refreshToken)
-
-    if (user) {
-      await setUserToCookies(user)
-    }
-
-    return {
-      status: "success",
-      data: data.data,
-    }
-  } catch (error) {
-    return {
-      status: "error",
-      error: error instanceof Error ? error.message : "Something went wrong",
-    }
-  }
-}
+export const registerAction = ({ name, email, password }: RegisterActionProps) =>
+  authRequest(AUTH_ENDPOINTS.signUp, { name, email, password })
 
 export const verifyEmailAction = async (email: string, token: number) => {
-  try {
-    const storedAccessToken = await getAccessTokenFromCookies()
-
-    const response = await fetch(`${config.serverUrl}/auth/verify-signup-token`, {
-      method: "POST",
-      body: JSON.stringify({
-        email,
-        token,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `${storedAccessToken}`,
-      },
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      return {
-        status: "error",
-        error: data.message || "Invalid OTP",
-      }
-    }
-
-    const { accessToken, refreshToken, user } = data.data
-
-    await setTokensToCookies(accessToken, refreshToken)
-
-    if (user) {
-      await setUserToCookies(user)
-    }
-
-    return {
-      status: "success",
-      data: data.data,
-    }
-  } catch (error) {
-    return {
-      status: "error",
-      error: error instanceof Error ? error.message : "Something went wrong",
-    }
-  }
+  const accessToken = await getAccessTokenCookie()
+  return authRequest(
+    AUTH_ENDPOINTS.verifySignupToken,
+    { email, token },
+    { Authorization: `${accessToken}` }
+  )
 }
 
-export const loginWithGoogleAction = async (body: {
+export const loginWithGoogleAction = (body: {
   credential?: string
   code?: string
   access_token?: string
-}) => {
-  try {
-    const response = await fetch(`${config.serverUrl}/auth/google-login`, {
-      method: "POST",
-      body: JSON.stringify(body),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      return {
-        status: "error",
-        error: data.message || "Invalid credentials",
-      }
-    }
-
-    const { accessToken, refreshToken, user } = data.data
-
-    await setTokensToCookies(accessToken, refreshToken)
-
-    if (user) {
-      await setUserToCookies(user)
-    }
-    return {
-      status: "success",
-      data,
-    }
-  } catch (error) {
-    console.error(error)
-    return {
-      status: "error",
-      error: error instanceof Error ? error.message : "Something went wrong",
-    }
-  }
-}
+}) => authRequest(AUTH_ENDPOINTS.googleLogin, body)
 
 export const logoutAction = async () => {
-  const cookieStore = await cookies()
-  cookieStore.delete({ name: "accessToken", path: "/" })
-  cookieStore.delete({ name: "refreshToken", path: "/" })
-  cookieStore.delete({ name: "user", path: "/" })
-}
-
-const setTokensToCookies = async (accessToken: string, refreshToken: string) => {
-  const cookieStore = await cookies()
-  const base = {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax" as const,
-    path: "/",
-  }
-
-  cookieStore.set("accessToken", accessToken, {
-    ...base,
-    maxAge: 60 * 60, // 1 hour — short-lived, refreshed via refreshToken
-  })
-
-  cookieStore.set("refreshToken", refreshToken, {
-    ...base,
-    maxAge: 60 * 60 * 24 * 90, // 90 days
-  })
-}
-
-const setUserToCookies = async (user: User) => {
-  const cookieStore = await cookies()
-  const base = {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax" as const,
-    path: "/",
-  }
-  // set user to cookies
-  cookieStore.set("user", JSON.stringify(user), {
-    ...base,
-    maxAge: 60 * 60 * 24 * 90, // 90 days
-  })
+  await clearAuthCookies()
 }
 
 export const revalidateTokensAction = async (accessToken: string, refreshToken: string) => {
-  await setTokensToCookies(accessToken, refreshToken)
+  await setAuthCookies({ accessToken, refreshToken })
 }
 
-const getAccessTokenFromCookies = async () => {
-  const cookieStore = await cookies()
-  return cookieStore.get("accessToken")?.value
-}
+export const getAccessTokenFromCookies = getAccessTokenCookie
