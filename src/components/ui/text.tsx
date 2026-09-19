@@ -35,10 +35,10 @@ import { cn } from "@/lib/utils";
 const textVariants = cva("", {
   variants: {
     variant: {
-      h1: "scroll-m-20 text-3xl font-extrabold tracking-tight text-balance sm:text-4xl lg:text-5xl",
-      h2: "scroll-m-20 text-2xl font-semibold tracking-tight first:mt-0 sm:text-3xl",
-      h3: "scroll-m-20 text-xl font-semibold tracking-tight sm:text-2xl",
-      h4: "scroll-m-20 text-lg font-semibold tracking-tight sm:text-xl",
+      h1: "font-heading scroll-m-20 text-3xl font-extrabold tracking-tight text-balance sm:text-4xl lg:text-5xl",
+      h2: "font-heading scroll-m-20 text-2xl font-semibold tracking-tight first:mt-0 sm:text-3xl",
+      h3: "font-heading scroll-m-20 text-xl font-semibold tracking-tight sm:text-2xl",
+      h4: "font-heading scroll-m-20 text-lg font-semibold tracking-tight sm:text-xl",
       p: "leading-7 [&:not(:first-child)]:mt-6",
       lead: "text-lg text-muted-foreground sm:text-xl",
       large: "text-lg font-semibold",
