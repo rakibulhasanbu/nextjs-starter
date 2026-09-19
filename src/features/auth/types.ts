@@ -42,11 +42,6 @@ export interface AuthPayload {
     callbackUrl: string;
 }
 
-export interface AuthResponse {
-    accessToken: string;
-    refreshToken: string;
-}
-
 export interface NavItem {
     title: string;
     url: string;

@@ -12,6 +12,9 @@ const AUTH_ENDPOINTS = {
   signIn: "/auth/signin",
   signUp: "/auth/signup",
   verifySignupToken: "/auth/verify-signup-token",
+  resendSignupOtp: "/auth/resend-signup-otp",
+  forgotPassword: "/auth/forgot-password",
+  resetPassword: "/auth/reset-password",
   googleLogin: "/auth/google-login",
 } as const
 
@@ -64,7 +67,7 @@ const authRequest = async <T extends AuthPayload>(
   }
 }
 
-export const loginAction = (email: string, password: string) =>
+export const loginAction = async (email: string, password: string) =>
   authRequest(AUTH_ENDPOINTS.signIn, { email, password })
 
 interface RegisterActionProps {
@@ -72,7 +75,7 @@ interface RegisterActionProps {
   email: string
   password: string
 }
-export const registerAction = ({ name, email, password }: RegisterActionProps) =>
+export const registerAction = async ({ name, email, password }: RegisterActionProps) =>
   authRequest(AUTH_ENDPOINTS.signUp, { name, email, password })
 
 export const verifyEmailAction = async (email: string, token: number) => {
@@ -84,7 +87,27 @@ export const verifyEmailAction = async (email: string, token: number) => {
   )
 }
 
-export const loginWithGoogleAction = (body: {
+export const resendVerificationOtpAction = async (email: string) => {
+  const accessToken = await getAccessTokenCookie()
+  return authRequest(
+    AUTH_ENDPOINTS.resendSignupOtp,
+    { email },
+    { Authorization: `${accessToken}` }
+  )
+}
+
+export const forgotPasswordAction = async (email: string) =>
+  authRequest(AUTH_ENDPOINTS.forgotPassword, { email })
+
+interface ResetPasswordActionProps {
+  email: string
+  otp: string
+  newPassword: string
+}
+export const resetPasswordAction = async ({ email, otp, newPassword }: ResetPasswordActionProps) =>
+  authRequest(AUTH_ENDPOINTS.resetPassword, { email, otp, newPassword })
+
+export const loginWithGoogleAction = async (body: {
   credential?: string
   code?: string
   access_token?: string
