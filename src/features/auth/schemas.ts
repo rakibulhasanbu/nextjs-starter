@@ -10,7 +10,7 @@ export type SignInFormValues = z.infer<typeof signInFormSchema>
 export const signUpFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().min(1, "Email is required").email("Enter a valid email address"),
-  phone: z.string().min(1, "Phone number is required"),
+  phone: z.string().optional().or(z.literal("")),
   password: z.string().min(8, "Password must be at least 8 characters"),
 })
 

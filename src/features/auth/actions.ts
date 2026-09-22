@@ -82,17 +82,18 @@ export const loginAction = async (email: string, password: string) => {
 interface RegisterActionProps {
     name: string;
     email: string;
-    phone: string;
+    phone?: string;
     password: string;
 }
 
-/**
- * Registration does not log the user in — the account stays PENDING_VERIFICATION until they click the emailed link.
- * The backend's signup DTO (`z.strictObject`) only accepts `email`/`password`/`name` — it 400s on unrecognized
- * keys, so `phone` isn't forwarded here. Persist it later via the account profile update once the user is signed in.
- */
-export const registerAction = async ({ name, email, password }: RegisterActionProps) => {
-    const result = await backendRequest<{ user: User }>(AUTH_ENDPOINTS.register, { name, email, password });
+/** Registration does not log the user in — the account stays PENDING_VERIFICATION until they click the emailed link. */
+export const registerAction = async ({ name, email, phone, password }: RegisterActionProps) => {
+    const result = await backendRequest<{ user: User }>(AUTH_ENDPOINTS.register, {
+        name,
+        email,
+        phone: phone || undefined,
+        password,
+    });
     if (!result.ok) return { status: "error", error: result.error } as const;
     return { status: "success", data: result.data } as const;
 };

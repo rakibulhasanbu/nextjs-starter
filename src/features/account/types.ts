@@ -1,4 +1,4 @@
-import { UserRole } from "@/features/auth/types";
+import { Gender, UserRole } from "@/features/auth/types";
 
 export enum AccountStatus {
     PENDING_VERIFICATION = "PENDING_VERIFICATION",
@@ -14,6 +14,8 @@ export interface AccountUser {
     name: string | null;
     phone: string | null;
     avatarUrl: string | null;
+    dateOfBirth: string | null;
+    gender: Gender | null;
     role: UserRole;
     status: AccountStatus;
     emailVerifiedAt: string | null;

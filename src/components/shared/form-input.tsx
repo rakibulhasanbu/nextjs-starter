@@ -14,7 +14,7 @@ type TFormInput<T extends FieldValues> = {
   placeholder: string;
   description?: string;
   disabled?: boolean;
-  type?: "email" | "password" | "text" | "number" | "url" | "tel";
+  type?: "email" | "password" | "text" | "number" | "url" | "tel" | "date";
   control: Control<T>;
   required?: boolean;
   min?: number;

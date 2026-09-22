@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { Gender } from "@/features/auth/types";
 import { otpCodeSchema } from "@/features/auth/schemas";
 
 export const updateProfileFormSchema = z.object({
@@ -12,6 +13,8 @@ export const updateProfileFormSchema = z.object({
         .optional()
         .or(z.literal("")),
     phone: z.string().min(5).max(20).optional().or(z.literal("")),
+    dateOfBirth: z.string().optional().or(z.literal("")),
+    gender: z.enum(Gender).optional().or(z.literal("")),
 });
 
 export type UpdateProfileFormValues = z.infer<typeof updateProfileFormSchema>;

@@ -12,6 +12,12 @@ export enum UserStatus {
     SUSPENDED = "SUSPENDED",
 }
 
+export enum Gender {
+    MALE = "MALE",
+    FEMALE = "FEMALE",
+    OTHER = "OTHER",
+}
+
 /** Shape of the backend's `PublicUser` (Prisma `User` minus `password`). */
 export interface User {
     id: string;
@@ -20,6 +26,8 @@ export interface User {
     name: string | null;
     phone: string | null;
     avatarUrl: string | null;
+    dateOfBirth: string | null;
+    gender: Gender | null;
     role: UserRole;
     status: UserStatus;
     emailVerifiedAt: string | null;

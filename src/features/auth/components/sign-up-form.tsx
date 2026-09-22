@@ -71,7 +71,6 @@ export const SignUpForm = () => {
           label="Phone number"
           placeholder="Enter phone number"
           autoComplete="tel"
-          required
         />
         <FormInput
           control={control}
