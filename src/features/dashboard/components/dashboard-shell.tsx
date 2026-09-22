@@ -22,7 +22,7 @@ import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { dashboardNavItems } from "@/features/dashboard/nav-config";
-import { useAuthStore } from "@/features/auth/store";
+import { useAuthStore } from "@/store/auth-store";
 
 export const DashboardShell = ({ children }: { children: React.ReactNode }) => {
     const pathname = usePathname();

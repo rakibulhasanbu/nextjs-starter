@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 
-import { useAuthStore } from "@/features/auth/store";
+import { useAuthStore } from "@/store/auth-store";
 import { User } from "@/features/auth/types";
 
 type Props = {

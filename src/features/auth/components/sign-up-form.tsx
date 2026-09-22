@@ -40,7 +40,7 @@ export const SignUpForm = () => {
     }
 
     // Registration doesn't log the user in — the account stays pending until
-    // they click the verification link we just emailed them.
+    // they enter the verification code we just emailed them.
     router.replace(`/auth/verify-email?email=${encodeURIComponent(values.email)}`);
   });
 

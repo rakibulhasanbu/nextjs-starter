@@ -8,7 +8,7 @@ import { LinkButton } from "@/components/shared/link-button";
 import { LoadingButton } from "@/components/shared/loading-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Text } from "@/components/ui/text";
-import { useAuthStore } from "@/features/auth/store";
+import { useAuthStore } from "@/store/auth-store";
 
 const initials = (name: string) =>
     name

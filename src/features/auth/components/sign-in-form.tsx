@@ -14,7 +14,7 @@ import { FieldGroup } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { loginAction } from "@/features/auth/actions";
 import { signInFormSchema, SignInFormValues } from "@/features/auth/schemas";
-import { useAuthStore } from "@/features/auth/store";
+import { useAuthStore } from "@/store/auth-store";
 
 export const SignInForm = () => {
   const setTokens = useAuthStore((state) => state.setTokens);
@@ -34,6 +34,14 @@ export const SignInForm = () => {
     setIsSubmitting(false);
 
     if (result.status === "error") {
+      if (result.code === "EMAIL_NOT_VERIFIED") {
+        toast.add({ title: "Verify your email", description: "We sent you a new code.", type: "info" });
+        const callbackUrl = searchParams.get("callbackUrl");
+        const params = new URLSearchParams({ email: values.email });
+        if (callbackUrl) params.set("callbackUrl", callbackUrl);
+        router.push(`/auth/verify-email?${params.toString()}`);
+        return;
+      }
       toast.add({ title: "Sign in failed", description: result.error, type: "error" });
       return;
     }

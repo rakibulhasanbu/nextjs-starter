@@ -7,8 +7,7 @@ export const ROUTES = {
     protectedRoutes: ["/dashboard", "/account"] as const,
     // Subset of protectedRoutes that additionally requires ADMIN or SUPER_ADMIN.
     adminOnlyRoutes: ["/dashboard"] as const,
-    // Unauthenticated, token-in-URL pages reached via emailed links, plus the landing page.
-    public: ["/", "/verify-email", "/reset-password"] as const,
+    public: ["/"] as const,
     auth: ["/auth/sign-in", "/auth/sign-up", "/auth/forgot-password", "/auth/verify-email"] as const,
 };
 

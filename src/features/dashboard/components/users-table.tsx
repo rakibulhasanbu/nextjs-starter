@@ -15,7 +15,7 @@ import { toast } from "@/components/ui/toast";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, QueryParams } from "@/lib/api-client";
 import { UserRole } from "@/features/auth/types";
-import { useAuthStore } from "@/features/auth/store";
+import { useAuthStore } from "@/store/auth-store";
 import {
     useAdminUsers,
     useSoftDeleteAdminUserMutation,

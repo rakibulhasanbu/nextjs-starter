@@ -19,14 +19,16 @@ const AUTH_ENDPOINTS = {
     me: "/users/me",
 } as const;
 
-type AuthActionResult<T> = { status: "success"; data: T } | { status: "error"; error: string };
+type AuthActionResult<T> =
+    | { status: "success"; data: T }
+    | { status: "error"; error: string; code?: string };
 
 /** Raw POST against the backend — every server action below is this call with a different endpoint/body/headers. */
 const backendRequest = async <T>(
     endpoint: string,
     body: unknown,
     extraHeaders?: Record<string, string>
-): Promise<{ ok: true; data: T } | { ok: false; error: string }> => {
+): Promise<{ ok: true; data: T } | { ok: false; error: string; code?: string }> => {
     try {
         const response = await fetch(`${config.serverUrl}${endpoint}`, {
             method: "POST",
@@ -41,8 +43,8 @@ const backendRequest = async <T>(
         const json = response.status === 204 ? null : await response.json().catch(() => null);
 
         if (!response.ok) {
-            const { message } = (json as ApiErrorResponse) ?? {};
-            return { ok: false, error: message || "Something went wrong" };
+            const { message, code } = (json as ApiErrorResponse) ?? {};
+            return { ok: false, error: message || "Something went wrong", code };
         }
 
         const data = json === null ? null : (json as ApiSuccessResponse<T>).data;
@@ -73,7 +75,7 @@ const establishSession = async (tokens: AuthResponse): Promise<AuthActionResult<
 
 export const loginAction = async (email: string, password: string) => {
     const result = await backendRequest<AuthResponse>(AUTH_ENDPOINTS.login, { email, password });
-    if (!result.ok) return { status: "error", error: result.error } as const;
+    if (!result.ok) return { status: "error", error: result.error, code: result.code } as const;
     return establishSession(result.data);
 };
 
@@ -95,11 +97,11 @@ export const registerAction = async ({ name, email, password }: RegisterActionPr
     return { status: "success", data: result.data } as const;
 };
 
-/** Consumes the token from the emailed verification link. Public endpoint — no auth required. */
-export const verifyEmailAction = async (token: string) => {
-    const result = await backendRequest<null>(AUTH_ENDPOINTS.verifyEmail, { token });
+/** Consumes the 6-digit code emailed to the user, then signs them in — proving the code is proof of ownership. */
+export const verifyEmailAction = async (email: string, code: string) => {
+    const result = await backendRequest<AuthResponse>(AUTH_ENDPOINTS.verifyEmail, { email, code });
     if (!result.ok) return { status: "error", error: result.error } as const;
-    return { status: "success", data: null } as const;
+    return establishSession(result.data);
 };
 
 export const resendVerificationAction = async (email: string) => {
@@ -114,11 +116,19 @@ export const forgotPasswordAction = async (email: string) => {
     return { status: "success", data: null } as const;
 };
 
-/** Consumes the token from the emailed reset-password link. Public endpoint — no auth required. */
-export const resetPasswordAction = async ({ token, password }: { token: string; password: string }) => {
-    const result = await backendRequest<null>(AUTH_ENDPOINTS.resetPassword, { token, password });
+/** Consumes the 6-digit code emailed to the user, then signs them in — proving the code is proof of ownership. */
+export const resetPasswordAction = async ({
+    email,
+    code,
+    password,
+}: {
+    email: string;
+    code: string;
+    password: string;
+}) => {
+    const result = await backendRequest<AuthResponse>(AUTH_ENDPOINTS.resetPassword, { email, code, password });
     if (!result.ok) return { status: "error", error: result.error } as const;
-    return { status: "success", data: null } as const;
+    return establishSession(result.data);
 };
 
 export const loginWithGoogleAction = async (idToken: string) => {

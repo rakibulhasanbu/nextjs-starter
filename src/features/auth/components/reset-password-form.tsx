@@ -2,34 +2,39 @@
 
 import { useState } from "react";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
+import { FormOTPInput } from "@/components/shared/form-OTP-input";
 import { FormInput } from "@/components/shared/form-input";
 import { LoadingButton } from "@/components/shared/loading-button";
 import { FieldGroup } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { resetPasswordAction } from "@/features/auth/actions";
 import { newPasswordFormSchema, NewPasswordFormValues } from "@/features/auth/schemas";
+import { useAuthStore } from "@/store/auth-store";
 
 interface ResetPasswordFormProps {
-  token: string;
+  email: string;
 }
 
-export const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
+export const ResetPasswordForm = ({ email }: ResetPasswordFormProps) => {
+  const setTokens = useAuthStore((state) => state.setTokens);
+  const setUser = useAuthStore((state) => state.setUser);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { control, handleSubmit } = useForm<NewPasswordFormValues>({
     resolver: zodResolver(newPasswordFormSchema),
-    defaultValues: { newPassword: "", confirmPassword: "" },
+    defaultValues: { code: "", newPassword: "", confirmPassword: "" },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     setIsSubmitting(true);
-    const result = await resetPasswordAction({ token, password: values.newPassword });
+    const result = await resetPasswordAction({ email, code: values.code, password: values.newPassword });
     setIsSubmitting(false);
 
     if (result.status === "error") {
@@ -37,17 +42,26 @@ export const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
       return;
     }
 
-    toast.add({
-      title: "Password reset",
-      description: "Sign in with your new password.",
-      type: "success",
-    });
-    router.replace("/auth/sign-in");
+    setTokens({ accessToken: result.data.accessToken, refreshToken: result.data.refreshToken });
+    setUser(result.data.user);
+
+    toast.add({ title: "Password reset", type: "success" });
+    const callbackUrl = searchParams.get("callbackUrl") || "/";
+    router.replace(callbackUrl);
+    router.refresh();
   });
 
   return (
     <form onSubmit={onSubmit} noValidate>
       <FieldGroup>
+        <FormOTPInput
+          control={control}
+          name="code"
+          length={6}
+          pattern="\d*"
+          label="Verification code"
+          description={`Enter the 6-digit code sent to ${email}`}
+        />
         <FormInput
           control={control}
           name="newPassword"

@@ -22,10 +22,20 @@ export const forgotFormSchema = z.object({
 
 export type ForgotFormValues = z.infer<typeof forgotFormSchema>
 
-// Token comes from the emailed link's `?token=` query param, not user input —
-// this form only collects the new password.
+export const otpCodeSchema = z
+  .string()
+  .length(6, "Enter the 6-digit code")
+  .regex(/^\d{6}$/, "Code must be numeric")
+
+export const verifyEmailFormSchema = z.object({
+  code: otpCodeSchema,
+})
+
+export type VerifyEmailFormValues = z.infer<typeof verifyEmailFormSchema>
+
 export const newPasswordFormSchema = z
   .object({
+    code: otpCodeSchema,
     newPassword: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(1, "Confirm your password"),
   })
