@@ -1,124 +1,140 @@
-"use server"
+"use server";
 
-import { config } from "@/config"
-import { AuthResponse, User } from "@/features/auth/types"
-import {
-  clearAuthCookies,
-  getAccessTokenCookie,
-  setAuthCookies,
-} from "@/lib/auth-cookies"
+import { config } from "@/config";
+import { AuthResponse, User } from "@/features/auth/types";
+
+import type { ApiErrorResponse, ApiSuccessResponse } from "@/lib/api-types";
+import { clearAuthCookies, getRefreshTokenCookie, setAuthCookies } from "@/lib/auth-cookies";
 
 const AUTH_ENDPOINTS = {
-  signIn: "/auth/signin",
-  signUp: "/auth/signup",
-  verifySignupToken: "/auth/verify-signup-token",
-  resendSignupOtp: "/auth/resend-signup-otp",
-  forgotPassword: "/auth/forgot-password",
-  resetPassword: "/auth/reset-password",
-  googleLogin: "/auth/google-login",
-} as const
+    register: "/auth/signup",
+    login: "/auth/signin",
+    refresh: "/auth/refresh",
+    logout: "/auth/logout",
+    verifyEmail: "/auth/verify-email",
+    resendVerification: "/auth/resend-verification",
+    forgotPassword: "/auth/forgot-password",
+    resetPassword: "/auth/reset-password",
+    google: "/auth/google",
+    me: "/users/me",
+} as const;
 
-type AuthEndpoint = (typeof AUTH_ENDPOINTS)[keyof typeof AUTH_ENDPOINTS]
+type AuthActionResult<T> = { status: "success"; data: T } | { status: "error"; error: string };
 
-type AuthActionResult<T> = { status: "success"; data: T } | { status: "error"; error: string }
+/** Raw POST against the backend — every server action below is this call with a different endpoint/body/headers. */
+const backendRequest = async <T>(
+    endpoint: string,
+    body: unknown,
+    extraHeaders?: Record<string, string>
+): Promise<{ ok: true; data: T } | { ok: false; error: string }> => {
+    try {
+        const response = await fetch(`${config.serverUrl}${endpoint}`, {
+            method: "POST",
+            body: JSON.stringify(body),
+            headers: {
+                "Content-Type": "application/json",
+                ...extraHeaders,
+            },
+        });
 
-type AuthPayload = Partial<AuthResponse> & { user?: User }
+        // 204 No Content endpoints have no JSON body to parse.
+        const json = response.status === 204 ? null : await response.json().catch(() => null);
 
-/**
- * Single point where auth requests are made: hits `endpoint`, and if the
- * response carries tokens/user, persists them via the cookie layer. Every
- * auth server action below is just this call with a different endpoint/body.
- */
-const authRequest = async <T extends AuthPayload>(
-  endpoint: AuthEndpoint,
-  body: unknown,
-  extraHeaders?: Record<string, string>
-): Promise<AuthActionResult<T>> => {
-  try {
-    const response = await fetch(`${config.serverUrl}${endpoint}`, {
-      method: "POST",
-      body: JSON.stringify(body),
-      headers: {
-        "Content-Type": "application/json",
-        ...extraHeaders,
-      },
-    })
+        if (!response.ok) {
+            const { message } = (json as ApiErrorResponse) ?? {};
+            return { ok: false, error: message || "Something went wrong" };
+        }
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      return { status: "error", error: data.message || "Something went wrong" }
+        const data = json === null ? null : (json as ApiSuccessResponse<T>).data;
+        return { ok: true, data: data as T };
+    } catch (error) {
+        return { ok: false, error: error instanceof Error ? error.message : "Something went wrong" };
     }
+};
 
-    const result = data.data as T
-    await setAuthCookies({
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      user: result.user,
-    })
+const fetchMe = async (accessToken: string): Promise<User | null> => {
+    const response = await fetch(`${config.serverUrl}${AUTH_ENDPOINTS.me}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) return null;
+    const json = (await response.json()) as ApiSuccessResponse<User>;
+    return json.data;
+};
 
-    return { status: "success", data: result }
-  } catch (error) {
-    console.error(error)
-    return {
-      status: "error",
-      error: error instanceof Error ? error.message : "Something went wrong",
+/** Login/register-with-Google both return tokens only (no user) — fetch `/users/me` and persist the session. */
+const establishSession = async (tokens: AuthResponse): Promise<AuthActionResult<{ user: User } & AuthResponse>> => {
+    const user = await fetchMe(tokens.accessToken);
+    if (!user) {
+        return { status: "error", error: "Signed in, but couldn't load your profile. Try again." };
     }
-  }
-}
+    await setAuthCookies({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, user });
+    return { status: "success", data: { ...tokens, user } };
+};
 
-export const loginAction = async (email: string, password: string) =>
-  authRequest(AUTH_ENDPOINTS.signIn, { email, password })
+export const loginAction = async (email: string, password: string) => {
+    const result = await backendRequest<AuthResponse>(AUTH_ENDPOINTS.login, { email, password });
+    if (!result.ok) return { status: "error", error: result.error } as const;
+    return establishSession(result.data);
+};
 
 interface RegisterActionProps {
-  name: string
-  email: string
-  password: string
-}
-export const registerAction = async ({ name, email, password }: RegisterActionProps) =>
-  authRequest(AUTH_ENDPOINTS.signUp, { name, email, password })
-
-export const verifyEmailAction = async (email: string, token: number) => {
-  const accessToken = await getAccessTokenCookie()
-  return authRequest(
-    AUTH_ENDPOINTS.verifySignupToken,
-    { email, token },
-    { Authorization: `${accessToken}` }
-  )
+    name: string;
+    email: string;
+    phone: string;
+    password: string;
 }
 
-export const resendVerificationOtpAction = async (email: string) => {
-  const accessToken = await getAccessTokenCookie()
-  return authRequest(
-    AUTH_ENDPOINTS.resendSignupOtp,
-    { email },
-    { Authorization: `${accessToken}` }
-  )
-}
+/**
+ * Registration does not log the user in — the account stays PENDING_VERIFICATION until they click the emailed link.
+ * The backend's signup DTO (`z.strictObject`) only accepts `email`/`password`/`name` — it 400s on unrecognized
+ * keys, so `phone` isn't forwarded here. Persist it later via the account profile update once the user is signed in.
+ */
+export const registerAction = async ({ name, email, password }: RegisterActionProps) => {
+    const result = await backendRequest<{ user: User }>(AUTH_ENDPOINTS.register, { name, email, password });
+    if (!result.ok) return { status: "error", error: result.error } as const;
+    return { status: "success", data: result.data } as const;
+};
 
-export const forgotPasswordAction = async (email: string) =>
-  authRequest(AUTH_ENDPOINTS.forgotPassword, { email })
+/** Consumes the token from the emailed verification link. Public endpoint — no auth required. */
+export const verifyEmailAction = async (token: string) => {
+    const result = await backendRequest<null>(AUTH_ENDPOINTS.verifyEmail, { token });
+    if (!result.ok) return { status: "error", error: result.error } as const;
+    return { status: "success", data: null } as const;
+};
 
-interface ResetPasswordActionProps {
-  email: string
-  otp: string
-  newPassword: string
-}
-export const resetPasswordAction = async ({ email, otp, newPassword }: ResetPasswordActionProps) =>
-  authRequest(AUTH_ENDPOINTS.resetPassword, { email, otp, newPassword })
+export const resendVerificationAction = async (email: string) => {
+    const result = await backendRequest<null>(AUTH_ENDPOINTS.resendVerification, { email });
+    if (!result.ok) return { status: "error", error: result.error } as const;
+    return { status: "success", data: null } as const;
+};
 
-export const loginWithGoogleAction = async (body: {
-  credential?: string
-  code?: string
-  access_token?: string
-}) => authRequest(AUTH_ENDPOINTS.googleLogin, body)
+export const forgotPasswordAction = async (email: string) => {
+    const result = await backendRequest<null>(AUTH_ENDPOINTS.forgotPassword, { email });
+    if (!result.ok) return { status: "error", error: result.error } as const;
+    return { status: "success", data: null } as const;
+};
+
+/** Consumes the token from the emailed reset-password link. Public endpoint — no auth required. */
+export const resetPasswordAction = async ({ token, password }: { token: string; password: string }) => {
+    const result = await backendRequest<null>(AUTH_ENDPOINTS.resetPassword, { token, password });
+    if (!result.ok) return { status: "error", error: result.error } as const;
+    return { status: "success", data: null } as const;
+};
+
+export const loginWithGoogleAction = async (idToken: string) => {
+    const result = await backendRequest<AuthResponse>(AUTH_ENDPOINTS.google, { idToken });
+    if (!result.ok) return { status: "error", error: result.error } as const;
+    return establishSession(result.data);
+};
 
 export const logoutAction = async () => {
-  await clearAuthCookies()
-}
+    const refreshToken = await getRefreshTokenCookie();
+    if (refreshToken) {
+        await backendRequest(AUTH_ENDPOINTS.logout, { refreshToken });
+    }
+    await clearAuthCookies();
+};
 
 export const revalidateTokensAction = async (accessToken: string, refreshToken: string) => {
-  await setAuthCookies({ accessToken, refreshToken })
-}
-
-export const getAccessTokenFromCookies = getAccessTokenCookie
+    await setAuthCookies({ accessToken, refreshToken });
+};

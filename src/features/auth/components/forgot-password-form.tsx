@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { useRouter } from "next/navigation";
+import { MailIcon } from "lucide-react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -10,12 +10,13 @@ import { useForm } from "react-hook-form";
 import { FormInput } from "@/components/shared/form-input";
 import { LoadingButton } from "@/components/shared/loading-button";
 import { FieldGroup } from "@/components/ui/field";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { toast } from "@/components/ui/toast";
 import { forgotPasswordAction } from "@/features/auth/actions";
 import { forgotFormSchema, ForgotFormValues } from "@/features/auth/schemas";
 
 export const ForgotPasswordForm = () => {
-  const router = useRouter();
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { control, handleSubmit } = useForm<ForgotFormValues>({
@@ -29,17 +30,29 @@ export const ForgotPasswordForm = () => {
     setIsSubmitting(false);
 
     if (result.status === "error") {
-      toast.add({ title: "Couldn't send reset code", description: result.error, type: "error" });
+      toast.add({ title: "Couldn't send reset link", description: result.error, type: "error" });
       return;
     }
 
-    toast.add({
-      title: "Reset code sent",
-      description: "Check your email for the 6-digit code.",
-      type: "success",
-    });
-    router.push(`/auth/reset-password?email=${encodeURIComponent(values.email)}`);
+    setSentTo(values.email);
   });
+
+  if (sentTo) {
+    return (
+      <Empty className="border-none p-0">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <MailIcon />
+          </EmptyMedia>
+          <EmptyTitle>Check your email</EmptyTitle>
+          <EmptyDescription>
+            If an account exists for <span className="font-medium text-foreground">{sentTo}</span>, we&apos;ve sent
+            a link to reset your password.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
 
   return (
     <form onSubmit={onSubmit} noValidate>
@@ -54,7 +67,7 @@ export const ForgotPasswordForm = () => {
           required
         />
         <LoadingButton type="submit" className="w-full" isLoading={isSubmitting}>
-          Send reset code
+          Send reset link
         </LoadingButton>
       </FieldGroup>
     </form>

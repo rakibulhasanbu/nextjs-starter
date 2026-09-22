@@ -3,11 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { User, UserRole } from "@/features/auth/types";
 
 export const ROUTES = {
-    superAdminRoutes: ["/overview", "/users"] as const,
-    adminRoutes: ["/overview"] as const,
-    public: ["/"] as const,
-    auth: ["/auth/sign-in", "/auth/sign-up", "/auth/forgot-password", "/auth/reset-password"] as const,
-    authNotVerified: ["/auth/verify-email"] as const,
+    // Requires a signed-in user (any role).
+    protectedRoutes: ["/dashboard", "/account"] as const,
+    // Subset of protectedRoutes that additionally requires ADMIN or SUPER_ADMIN.
+    adminOnlyRoutes: ["/dashboard"] as const,
+    // Unauthenticated, token-in-URL pages reached via emailed links, plus the landing page.
+    public: ["/", "/verify-email", "/reset-password"] as const,
+    auth: ["/auth/sign-in", "/auth/sign-up", "/auth/forgot-password", "/auth/verify-email"] as const,
 };
 
 export const isRouteMatched = (pathname: string, routes: readonly string[]) =>
@@ -20,36 +22,29 @@ export async function proxy(req: NextRequest) {
     const { pathname, searchParams, search } = req.nextUrl;
 
     const isAuthenticated = checkAuth(req);
-    const isSuperAdminRoute = isRouteMatched(pathname, ROUTES.superAdminRoutes);
+    const isProtectedRoute = isRouteMatched(pathname, ROUTES.protectedRoutes);
+    const isAdminOnlyRoute = isRouteMatched(pathname, ROUTES.adminOnlyRoutes);
     const isAuthRoute = isRouteExactMatched(pathname, ROUTES.auth);
-    const isAuthNotVerifiedRoute = isRouteExactMatched(pathname, ROUTES.authNotVerified);
-    const isPublicRoute = isRouteMatched(pathname, ROUTES.public);
-    const isRootRoute = pathname === "/";
+    // Exact match: startsWith would match every path off of "/".
+    const isPublicRoute = isRouteExactMatched(pathname, ROUTES.public);
 
     if (isPublicRoute) return NextResponse.next();
 
     if (isAuthenticated) {
-        const { isVerified, isAdmin } = checkUserVerified(req);
-        if (!isVerified && (isRootRoute || isAuthRoute || isSuperAdminRoute)) {
-            return redirectTo("/auth/verify-email", req);
-        }
-        // if (isVerified && !isAdmin && !isSeller && !isEmployee) {
-        //     return redirectTo("/onboarding", req);
-        // }
-        if (isVerified && isAuthNotVerifiedRoute) {
-            return redirectTo("/", req);
-        }
+        // The backend rejects login for anything but an ACTIVE user, so a
+        // valid session cookie already implies a verified, non-suspended
+        // account — there's no "authenticated but unverified" state to gate.
         if (isAuthRoute) {
             const callback = searchParams.get("callbackUrl") || "/";
             return redirectTo(callback, req);
         }
-        if (isSuperAdminRoute && !isAdmin) {
+        if (isAdminOnlyRoute && !isAdmin(req)) {
             return redirectTo("/", req);
         }
         return NextResponse.next();
     }
 
-    if (isRootRoute || isSuperAdminRoute) {
+    if (isProtectedRoute) {
         const callback = encodeURIComponent(pathname + search);
         return redirectTo(`/auth/sign-in?callbackUrl=${callback}`, req);
     }
@@ -64,10 +59,10 @@ function redirectTo(path: string, req: NextRequest): NextResponse {
 }
 
 // NOTE: this proxy only redirects for UX — it trusts cookie *presence* and the
-// unsigned `user` JSON cookie for role/verification, neither of which it can
+// unsigned `user` JSON cookie for role, neither of which it can
 // cryptographically verify. It is NOT an authorization boundary. Every
 // privileged backend endpoint MUST independently verify the JWT and
-// re-derive role/verification server-side; never rely on this gate alone.
+// re-derive the role server-side; never rely on this gate alone.
 const checkAuth = (req: NextRequest) => {
     const accessToken = req.cookies.get("accessToken")?.value;
     const refreshToken = req.cookies.get("refreshToken")?.value;
@@ -79,17 +74,11 @@ const checkAuth = (req: NextRequest) => {
     return false;
 };
 
-const checkUserVerified = (req: NextRequest) => {
+const isAdmin = (req: NextRequest) => {
     const userCookie = req.cookies.get("user")?.value;
     const user = userCookie ? (JSON.parse(userCookie) as User) : ({} as User);
 
-    const isVerified = user?.isVerified;
-    const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
-
-    return {
-        isVerified,
-        isAdmin,
-    };
+    return user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
 };
 
 // Matcher configuration - exclude static files and API routes

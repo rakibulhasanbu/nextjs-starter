@@ -1,45 +1,35 @@
 import { LucideIcon } from "lucide-react";
 
-export interface LoginPayload {
-    email: string;
-    password: string;
-}
-
-export interface RegisterPayload extends LoginPayload {
-    confirm_password: string;
-}
-
 export enum UserRole {
     SUPER_ADMIN = "SUPER_ADMIN",
     ADMIN = "ADMIN",
     USER = "USER",
-    SELLER = "SELLER",
-    EMPLOYEE = "EMPLOYEE",
 }
 
+export enum UserStatus {
+    PENDING_VERIFICATION = "PENDING_VERIFICATION",
+    ACTIVE = "ACTIVE",
+    SUSPENDED = "SUSPENDED",
+}
+
+/** Shape of the backend's `PublicUser` (Prisma `User` minus `password`). */
 export interface User {
     id: string;
-    username: string;
     email: string;
-    isVerified: boolean;
-    isBlocked: boolean;
-    name: string;
-    createdAt: string;
-    photoUrl: string;
+    username: string;
+    name: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
     role: UserRole;
+    status: UserStatus;
+    emailVerifiedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface AuthResponse {
     accessToken: string;
     refreshToken: string;
-}
-
-export interface AuthPayload {
-    name: string;
-    email: string;
-    password: string;
-    action: "login" | "register";
-    callbackUrl: string;
 }
 
 export interface NavItem {

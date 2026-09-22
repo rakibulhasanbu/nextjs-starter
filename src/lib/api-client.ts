@@ -1,6 +1,7 @@
 import { config } from "@/config";
 import { useAuthStore } from "@/features/auth/store";
 
+import { QueryParams, type ApiErrorResponse, type ApiSuccessResponse, type Method } from "@/lib/api-types";
 import { toast } from "@/components/ui/toast";
 
 export const API_TIMEOUT = 120_000; // 2 minutes
@@ -14,46 +15,16 @@ export const METHOD = {
     DELETE: "DELETE",
 } as const;
 
-export type Method = (typeof METHOD)[keyof typeof METHOD];
-
-export interface IMeta {
-    limit: number;
-    page: number;
-    total: number;
-}
-
-export type PaginatedResponse<T> = {
-    data: T[];
-    meta?: IMeta;
-    success: boolean;
-    message: string;
-    statusCode: number;
-};
-
-export type ResponseObject<T> = {
-    data: T;
-    message: string;
-    success: boolean;
-    statusCode: number;
-};
-
-export type ErrorResponse = {
-    path: string | number;
-    message: string;
-};
-
-export type QueryParams = {
-    [key: string]: string | string[] | number | undefined;
-};
-
 export class ApiError extends Error {
     status: number;
-    body: unknown;
+    code: string;
+    details?: unknown[];
 
-    constructor(status: number, message: string, body?: unknown) {
-        super(message);
-        this.status = status;
-        this.body = body;
+    constructor(body: ApiErrorResponse) {
+        super(body.message || "Something went wrong");
+        this.status = body.statusCode;
+        this.code = body.code;
+        this.details = body.details;
     }
 }
 
@@ -67,7 +38,10 @@ type RequestOptions = {
 };
 
 const buildUrl = (endpoint: string, params?: QueryParams) => {
-    const url = new URL(endpoint, API_BASE_URL);
+    // `new URL(endpoint, base)` treats a leading-slash endpoint as absolute and
+    // discards the base's own path (e.g. the `/api` in API_BASE_URL) — concatenate instead.
+    const path = `${API_BASE_URL.replace(/\/$/, "")}/${endpoint.replace(/^\//, "")}`;
+    const url = new URL(path, typeof window !== "undefined" ? window.location.origin : undefined);
 
     if (params) {
         Object.entries(params).forEach(([key, value]) => {
@@ -92,7 +66,7 @@ const rawFetch = async (endpoint: string, options: RequestOptions = {}) => {
     const authHeaders: Record<string, string> = {};
     if (!skipAuth) {
         const token = useAuthStore.getState().accessToken;
-        if (token) authHeaders.Authorization = token;
+        if (token) authHeaders.Authorization = `Bearer ${token}`;
     }
 
     try {
@@ -128,17 +102,19 @@ const refreshAccessToken = async (): Promise<boolean> => {
                 return false;
             }
 
-            const { response, data } = await rawFetch("/auth/refresh-token", {
+            const { response, data } = await rawFetch("/auth/refresh", {
                 method: METHOD.POST,
                 body: { refreshToken },
                 skipAuth: true,
             });
 
             if (response.ok && data) {
-                const result = data as ResponseObject<{ accessToken: string }>;
+                // Refresh tokens rotate server-side — the old one is revoked as soon as
+                // it's consumed, so we must persist the newly issued one, not reuse the old.
+                const result = data as ApiSuccessResponse<{ accessToken: string; refreshToken: string }>;
                 await useAuthStore.getState().setTokensAndRevalidate({
                     accessToken: result.data.accessToken,
-                    refreshToken,
+                    refreshToken: result.data.refreshToken,
                 });
                 return true;
             }
@@ -154,7 +130,7 @@ const refreshAccessToken = async (): Promise<boolean> => {
     return refreshPromise;
 };
 
-export const apiFetch = async <T>(endpoint: string, options: RequestOptions = {}): Promise<T> => {
+const requestEnvelope = async (endpoint: string, options: RequestOptions = {}) => {
     let { response, data } = await rawFetch(endpoint, options);
 
     if (response.status === 401 && !options.skipAuth) {
@@ -166,8 +142,29 @@ export const apiFetch = async <T>(endpoint: string, options: RequestOptions = {}
     }
 
     if (!response.ok) {
-        throw new ApiError(response.status, data?.message || "Something went wrong", data);
+        throw new ApiError(
+            (data as ApiErrorResponse) ?? {
+                statusCode: response.status,
+                code: "UNKNOWN_ERROR",
+                message: "Something went wrong",
+            }
+        );
     }
 
-    return data as T;
+    // 204 No Content responses have no envelope to unwrap.
+    return data as ApiSuccessResponse<unknown> | null;
+};
+
+export const apiFetch = async <T>(endpoint: string, options: RequestOptions = {}): Promise<T> => {
+    const envelope = await requestEnvelope(endpoint, options);
+    return (envelope ? envelope.data : null) as T;
+};
+
+/** For endpoints that return `{ data: T[], meta: { page, limit, total } }` (e.g. `GET /admin/users`) — returned as-is. */
+export const apiFetchPaginated = async <T>(
+    endpoint: string,
+    options: RequestOptions = {}
+): Promise<ApiSuccessResponse<T[]>> => {
+    const envelope = await requestEnvelope(endpoint, options);
+    return envelope as ApiSuccessResponse<T[]>;
 };

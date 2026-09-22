@@ -2,34 +2,23 @@
 
 import { useEffect, useState } from "react";
 
-import { useRouter } from "next/navigation";
+import { MailIcon } from "lucide-react";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-
-import { FormOTPInput } from "@/components/shared/form-OTP-input";
-import { LoadingButton } from "@/components/shared/loading-button";
 import { Button } from "@/components/ui/button";
-import { FieldDescription, FieldGroup } from "@/components/ui/field";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { toast } from "@/components/ui/toast";
-import { resendVerificationOtpAction, verifyEmailAction } from "@/features/auth/actions";
-import { otpFormSchema, OtpFormValues } from "@/features/auth/schemas";
-import { useAuthStore } from "@/features/auth/store";
+import { resendVerificationAction } from "@/features/auth/actions";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
-export const VerifyEmailForm = () => {
-  const user = useAuthStore((state) => state.user);
-  const setUser = useAuthStore((state) => state.setUser);
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+type CheckEmailPanelProps = {
+  email?: string;
+};
+
+/** Shown right after registration — the account is PENDING_VERIFICATION until the emailed link is clicked. */
+export const CheckEmailPanel = ({ email }: CheckEmailPanelProps) => {
   const [isResending, setIsResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-
-  const { control, handleSubmit } = useForm<OtpFormValues>({
-    resolver: zodResolver(otpFormSchema),
-    defaultValues: { otp: "" },
-  });
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -37,62 +26,45 @@ export const VerifyEmailForm = () => {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  const onSubmit = handleSubmit(async (values) => {
-    if (!user?.email) return;
-
-    setIsSubmitting(true);
-    const result = await verifyEmailAction(user.email, Number(values.otp));
-    setIsSubmitting(false);
-
-    if (result.status === "error") {
-      toast.add({ title: "Verification failed", description: result.error, type: "error" });
-      return;
-    }
-
-    setUser({ ...user, isVerified: true });
-    toast.add({ title: "Email verified", type: "success" });
-    router.replace("/");
-    router.refresh();
-  });
-
   const onResend = async () => {
-    if (!user?.email || cooldown > 0) return;
+    if (!email || cooldown > 0) return;
 
     setIsResending(true);
-    const result = await resendVerificationOtpAction(user.email);
+    const result = await resendVerificationAction(email);
     setIsResending(false);
 
     if (result.status === "error") {
-      toast.add({ title: "Couldn't resend code", description: result.error, type: "error" });
+      toast.add({ title: "Couldn't resend the link", description: result.error, type: "error" });
       return;
     }
 
-    toast.add({ title: "Code resent", description: "Check your email for the new code.", type: "success" });
+    toast.add({ title: "Verification email resent", type: "success" });
     setCooldown(RESEND_COOLDOWN_SECONDS);
   };
 
   return (
-    <form onSubmit={onSubmit} noValidate>
-      <FieldGroup>
-        {user?.email && (
-          <FieldDescription>
-            We sent a 6-digit code to <span className="font-medium text-foreground">{user.email}</span>.
-          </FieldDescription>
-        )}
-        <FormOTPInput control={control} name="otp" label="Verification code" length={6} />
-        <LoadingButton type="submit" className="w-full" isLoading={isSubmitting}>
-          Verify email
-        </LoadingButton>
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-full"
-          disabled={isResending || cooldown > 0}
-          onClick={onResend}
-        >
-          {cooldown > 0 ? `Resend code (${cooldown}s)` : "Resend code"}
-        </Button>
-      </FieldGroup>
-    </form>
+    <div className="flex flex-col gap-6">
+      <Empty className="border-none p-0">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <MailIcon />
+          </EmptyMedia>
+          <EmptyTitle>Check your email</EmptyTitle>
+          <EmptyDescription>
+            {email ? (
+              <>
+                We sent a verification link to <span className="font-medium text-foreground">{email}</span>. Click
+                it to activate your account.
+              </>
+            ) : (
+              "We sent you a verification link. Click it to activate your account."
+            )}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+      <Button type="button" variant="outline" className="w-full" disabled={!email || isResending || cooldown > 0} onClick={onResend}>
+        {cooldown > 0 ? `Resend link (${cooldown}s)` : "Resend link"}
+      </Button>
+    </div>
   );
 };

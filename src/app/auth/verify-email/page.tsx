@@ -2,23 +2,28 @@ import type { Metadata } from "next";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
-import { VerifyEmailForm } from "@/features/auth/components/verify-email-form";
+import { CheckEmailPanel } from "@/features/auth/components/check-email-panel";
 
-export const metadata: Metadata = { title: "Verify email" };
+export const metadata: Metadata = { title: "Verify your email" };
 
-export default function VerifyEmailPage() {
+export default async function VerifyEmailPendingPage({
+  searchParams,
+}: PageProps<"/auth/verify-email">) {
+  const params = await searchParams;
+  const email = typeof params.email === "string" ? params.email : undefined;
+
   return (
     <Card className="shadow-card">
       <CardHeader>
         <CardTitle>
           <Text variant="h3" render={<h1 />}>
-            Verify your email
+            Almost there
           </Text>
         </CardTitle>
-        <CardDescription>One more step before you can access your account</CardDescription>
+        <CardDescription>One more step before you can sign in</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-6">
-        <VerifyEmailForm />
+      <CardContent>
+        <CheckEmailPanel email={email} />
       </CardContent>
     </Card>
   );

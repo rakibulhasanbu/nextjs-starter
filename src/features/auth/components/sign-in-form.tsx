@@ -38,15 +38,11 @@ export const SignInForm = () => {
       return;
     }
 
-    if (result.data.accessToken && result.data.refreshToken) {
-      setTokens({ accessToken: result.data.accessToken, refreshToken: result.data.refreshToken });
-    }
-    if (result.data.user) {
-      setUser(result.data.user);
-    }
+    setTokens({ accessToken: result.data.accessToken, refreshToken: result.data.refreshToken });
+    setUser(result.data.user);
 
     const callbackUrl = searchParams.get("callbackUrl") || "/";
-    router.replace(result.data.user?.isVerified === false ? "/auth/verify-email" : callbackUrl);
+    router.replace(callbackUrl);
     router.refresh();
   });
 

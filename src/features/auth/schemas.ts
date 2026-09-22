@@ -7,17 +7,12 @@ export const signInFormSchema = z.object({
 
 export type SignInFormValues = z.infer<typeof signInFormSchema>
 
-export const signUpFormSchema = z
-  .object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().min(1, "Email is required").email("Enter a valid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string().min(1, "Confirm your password"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  })
+export const signUpFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().min(1, "Email is required").email("Enter a valid email address"),
+  phone: z.string().min(1, "Phone number is required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+})
 
 export type SignUpFormValues = z.infer<typeof signUpFormSchema>
 
@@ -27,15 +22,10 @@ export const forgotFormSchema = z.object({
 
 export type ForgotFormValues = z.infer<typeof forgotFormSchema>
 
-export const otpFormSchema = z.object({
-  otp: z.string().min(6, "Enter the 6-digit code"),
-})
-
-export type OtpFormValues = z.infer<typeof otpFormSchema>
-
-export const resetPasswordFormSchema = z
+// Token comes from the emailed link's `?token=` query param, not user input —
+// this form only collects the new password.
+export const newPasswordFormSchema = z
   .object({
-    otp: z.string().min(6, "Enter the 6-digit code"),
     newPassword: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(1, "Confirm your password"),
   })
@@ -44,4 +34,4 @@ export const resetPasswordFormSchema = z
     path: ["confirmPassword"],
   })
 
-export type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>
+export type NewPasswordFormValues = z.infer<typeof newPasswordFormSchema>

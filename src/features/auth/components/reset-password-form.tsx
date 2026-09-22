@@ -8,33 +8,28 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { FormInput } from "@/components/shared/form-input";
-import { FormOTPInput } from "@/components/shared/form-OTP-input";
 import { LoadingButton } from "@/components/shared/loading-button";
 import { FieldGroup } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
 import { resetPasswordAction } from "@/features/auth/actions";
-import { resetPasswordFormSchema, ResetPasswordFormValues } from "@/features/auth/schemas";
+import { newPasswordFormSchema, NewPasswordFormValues } from "@/features/auth/schemas";
 
 interface ResetPasswordFormProps {
-  email: string;
+  token: string;
 }
 
-export const ResetPasswordForm = ({ email }: ResetPasswordFormProps) => {
+export const ResetPasswordForm = ({ token }: ResetPasswordFormProps) => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { control, handleSubmit } = useForm<ResetPasswordFormValues>({
-    resolver: zodResolver(resetPasswordFormSchema),
-    defaultValues: { otp: "", newPassword: "", confirmPassword: "" },
+  const { control, handleSubmit } = useForm<NewPasswordFormValues>({
+    resolver: zodResolver(newPasswordFormSchema),
+    defaultValues: { newPassword: "", confirmPassword: "" },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     setIsSubmitting(true);
-    const result = await resetPasswordAction({
-      email,
-      otp: values.otp,
-      newPassword: values.newPassword,
-    });
+    const result = await resetPasswordAction({ token, password: values.newPassword });
     setIsSubmitting(false);
 
     if (result.status === "error") {
@@ -53,13 +48,6 @@ export const ResetPasswordForm = ({ email }: ResetPasswordFormProps) => {
   return (
     <form onSubmit={onSubmit} noValidate>
       <FieldGroup>
-        <FormOTPInput
-          control={control}
-          name="otp"
-          label="Verification code"
-          description="Enter the 6-digit code we emailed you."
-          length={6}
-        />
         <FormInput
           control={control}
           name="newPassword"
