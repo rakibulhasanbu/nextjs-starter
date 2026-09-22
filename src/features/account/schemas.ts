@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { otpCodeSchema } from "@/features/auth/schemas";
+
 export const updateProfileFormSchema = z.object({
     name: z.string().min(1).max(100).optional().or(z.literal("")),
     username: z
@@ -26,3 +28,9 @@ export const changePasswordFormSchema = z
     });
 
 export type ChangePasswordFormValues = z.infer<typeof changePasswordFormSchema>;
+
+export const deleteAccountOtpFormSchema = z.object({
+    code: otpCodeSchema,
+});
+
+export type DeleteAccountOtpFormValues = z.infer<typeof deleteAccountOtpFormSchema>;

@@ -51,3 +51,15 @@ export const useRevokeAllSessionsMutation = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.sessions }),
     });
 };
+
+// Step 1 of account deletion: emails a 6-digit confirmation code.
+export const useRequestAccountDeletionMutation = () =>
+    useMutation({
+        mutationFn: () => apiFetch<void>("/auth/request-account-deletion", { method: "POST" }),
+    });
+
+// Step 2: consuming the code soft-deletes the account and revokes every session server-side.
+export const useConfirmAccountDeletionMutation = () =>
+    useMutation({
+        mutationFn: (code: string) => apiFetch<void>("/auth/delete-account", { method: "POST", body: { code } }),
+    });

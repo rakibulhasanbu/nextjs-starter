@@ -5,6 +5,7 @@ import { LinkButton } from "@/components/shared/link-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/features/account/components/profile-form";
 import { ChangePasswordForm } from "@/features/account/components/change-password-form";
+import { DeleteAccountCard } from "@/features/account/components/delete-account-card";
 
 export const metadata: Metadata = { title: "Account" };
 
@@ -36,6 +37,15 @@ export default function AccountPage() {
                 </CardHeader>
                 <CardContent>
                     <ChangePasswordForm />
+                </CardContent>
+            </Card>
+            <Card className="border-destructive/30 shadow-card">
+                <CardHeader>
+                    <CardTitle>Danger zone</CardTitle>
+                    <CardDescription>Permanently delete your account and all associated data.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <DeleteAccountCard />
                 </CardContent>
             </Card>
         </div>
