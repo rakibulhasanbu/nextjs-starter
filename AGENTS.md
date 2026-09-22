@@ -1,5 +1,7 @@
 follow the context/architecture.md file and the context/ui-rules.md file
 
+When reporting information to me, be extremely concise and sacrifice grammar for sake of concision.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

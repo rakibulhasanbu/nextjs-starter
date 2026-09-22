@@ -23,7 +23,11 @@ const statusVariant: Record<UserStatus, "default" | "secondary" | "destructive">
     [UserStatus.SUSPENDED]: "destructive",
 };
 
+/** Mirrors the backend's `DELETED_USER_GRACE_DAYS` default (see nestjs-starter `.env.example`). */
+const DELETED_USER_GRACE_DAYS = 15;
+
 type UsersColumnsOptions = {
+    view: "active" | "deleted";
     canManage: (user: AdminUser) => boolean;
     onEdit: (user: AdminUser) => void;
     onToggleStatus: (user: AdminUser) => void;
@@ -34,6 +38,7 @@ type UsersColumnsOptions = {
 };
 
 export const buildUsersColumns = ({
+    view,
     canManage,
     onEdit,
     onToggleStatus,
@@ -62,14 +67,20 @@ export const buildUsersColumns = ({
         filterFn: "arrHas",
         cell: ({ row }) => <Badge variant="outline">{row.original.role}</Badge>,
     },
-    {
-        accessorKey: "status",
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-        filterFn: "arrHas",
-        cell: ({ row }) => (
-            <Badge variant={statusVariant[row.original.status]}>{row.original.status.replace("_", " ")}</Badge>
-        ),
-    },
+    ...(view === "active"
+        ? [
+              {
+                  accessorKey: "status",
+                  header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+                  filterFn: "arrHas",
+                  cell: ({ row }) => (
+                      <Badge variant={statusVariant[row.original.status]}>
+                          {row.original.status.replace("_", " ")}
+                      </Badge>
+                  ),
+              } satisfies DataTableColumnDef<AdminUser>,
+          ]
+        : []),
     {
         accessorKey: "createdAt",
         header: ({ column }) => <DataTableColumnHeader column={column} title="Joined" />,
@@ -79,6 +90,28 @@ export const buildUsersColumns = ({
             </Text>
         ),
     },
+    ...(view === "deleted"
+        ? [
+              {
+                  accessorKey: "deletedAt",
+                  header: ({ column }) => <DataTableColumnHeader column={column} title="Purge in" />,
+                  cell: ({ row }) => {
+                      if (!row.original.deletedAt) return null;
+                      const purgeDate = new Date(row.original.deletedAt);
+                      purgeDate.setDate(purgeDate.getDate() + DELETED_USER_GRACE_DAYS);
+                      const daysLeft = Math.max(
+                          0,
+                          Math.ceil((purgeDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+                      );
+                      return (
+                          <Text variant="small" tone="muted">
+                              {daysLeft} day{daysLeft === 1 ? "" : "s"} left
+                          </Text>
+                      );
+                  },
+              } satisfies DataTableColumnDef<AdminUser>,
+          ]
+        : []),
     {
         id: "actions",
         enableHiding: false,

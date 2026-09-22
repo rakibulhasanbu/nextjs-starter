@@ -1,8 +1,10 @@
 import { config } from "@/config";
 import { useAuthStore } from "@/features/auth/store";
 
-import { QueryParams, type ApiErrorResponse, type ApiSuccessResponse, type Method } from "@/lib/api-types";
+import { type QueryParams, type ApiErrorResponse, type ApiSuccessResponse, type Method } from "@/lib/api-types";
 import { toast } from "@/components/ui/toast";
+
+export type { QueryParams } from "@/lib/api-types";
 
 export const API_TIMEOUT = 120_000; // 2 minutes
 export const API_BASE_URL = config.serverUrl;

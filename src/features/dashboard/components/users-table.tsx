@@ -12,6 +12,7 @@ import {
 } from "@/components/table";
 import { useAlert } from "@/hooks/use-alert";
 import { toast } from "@/components/ui/toast";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, QueryParams } from "@/lib/api-client";
 import { UserRole } from "@/features/auth/types";
 import { useAuthStore } from "@/features/auth/store";
@@ -41,12 +42,18 @@ const statusOptions = [
 ];
 
 const UsersTableInner = () => {
-    const { pagination, searchTerm, columnFilters } = useDataTableUrlState({ defaultPageSize: 20 });
+    const { pagination, setPagination, searchTerm, columnFilters } = useDataTableUrlState({ defaultPageSize: 20 });
     const alert = useAlert();
     const actorRole = useAuthStore((state) => state.user?.role);
 
+    const [view, setView] = useState<"active" | "deleted">("active");
     const [editing, setEditing] = useState<AdminUser | null>(null);
     const [viewingSessions, setViewingSessions] = useState<AdminUser | null>(null);
+
+    const handleViewChange = (next: string) => {
+        setView(next as "active" | "deleted");
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    };
 
     const params = useMemo<QueryParams>(() => {
         const role = columnFilters.find((f) => f.id === "role")?.value;
@@ -56,9 +63,10 @@ const UsersTableInner = () => {
             limit: pagination.pageSize,
             search: searchTerm || undefined,
             role: Array.isArray(role) ? role[0] : role,
-            status: Array.isArray(status) ? status[0] : status,
+            status: view === "deleted" ? undefined : Array.isArray(status) ? status[0] : status,
+            deleted: view === "deleted" ? "true" : undefined,
         };
-    }, [pagination, searchTerm, columnFilters]);
+    }, [pagination, searchTerm, columnFilters, view]);
 
     const { data, isLoading } = useAdminUsers(params);
 
@@ -129,6 +137,7 @@ const UsersTableInner = () => {
     const columns = useMemo(
         () =>
             buildUsersColumns({
+                view,
                 canManage: (user) => canActorManage(actorRole, user),
                 onEdit: setEditing,
                 onToggleStatus: handleToggleStatus,
@@ -138,17 +147,25 @@ const UsersTableInner = () => {
                 onRestore: handleRestore,
             }),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [actorRole]
+        [actorRole, view]
     );
 
     return (
         <DataTableProvider data={data?.data} columns={columns} rowCount={data?.meta?.total} getRowId={(row) => row.id}>
+            <Tabs value={view} onValueChange={handleViewChange}>
+                <TabsList>
+                    <TabsTrigger value="active">Active</TabsTrigger>
+                    <TabsTrigger value="deleted">Deleted</TabsTrigger>
+                </TabsList>
+            </Tabs>
             <DataTableHeader
                 filters={
                     <>
                         <DataTableSearch placeholder="Search by name, email, username..." />
                         <DataTableFacetedFilter columnId="role" title="Role" options={roleOptions} />
-                        <DataTableFacetedFilter columnId="status" title="Status" options={statusOptions} />
+                        {view === "active" && (
+                            <DataTableFacetedFilter columnId="status" title="Status" options={statusOptions} />
+                        )}
                     </>
                 }
                 actions={actorRole === UserRole.SUPER_ADMIN ? <InviteAdminDialog /> : undefined}
