@@ -19,6 +19,7 @@ export interface AccountUser {
     role: UserRole;
     status: AccountStatus;
     emailVerifiedAt: string | null;
+    twoFactorEnabled: boolean;
     createdAt: string;
     updatedAt: string;
 }

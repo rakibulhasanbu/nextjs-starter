@@ -33,6 +33,18 @@ export const verifyEmailFormSchema = z.object({
 
 export type VerifyEmailFormValues = z.infer<typeof verifyEmailFormSchema>
 
+export const twoFactorVerifyFormSchema = z.object({
+  code: otpCodeSchema,
+})
+
+export type TwoFactorVerifyFormValues = z.infer<typeof twoFactorVerifyFormSchema>
+
+export const twoFactorRecoveryFormSchema = z.object({
+  recoveryCode: z.string().min(1, "Recovery code is required"),
+})
+
+export type TwoFactorRecoveryFormValues = z.infer<typeof twoFactorRecoveryFormSchema>
+
 export const newPasswordFormSchema = z
   .object({
     code: otpCodeSchema,

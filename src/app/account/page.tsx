@@ -4,20 +4,18 @@ import { PageHeader } from "@/components/shared/page-header";
 import { LinkButton } from "@/components/shared/link-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/features/account/components/profile-form";
-import { ChangePasswordForm } from "@/features/account/components/change-password-form";
-import { DeleteAccountCard } from "@/features/account/components/delete-account-card";
 
-export const metadata: Metadata = { title: "Account" };
+export const metadata: Metadata = { title: "Profile" };
 
 export default function AccountPage() {
     return (
         <div className="content-width flex flex-1 flex-col gap-6 p-4 sm:p-6">
             <PageHeader
-                title="Account"
-                description="Manage your profile and security settings."
+                title="Profile"
+                description="Manage your personal details."
                 actions={
-                    <LinkButton href="/account/sessions" variant="outline">
-                        Sessions
+                    <LinkButton href="/account/settings" variant="outline">
+                        Settings
                     </LinkButton>
                 }
             />
@@ -28,24 +26,6 @@ export default function AccountPage() {
                 </CardHeader>
                 <CardContent>
                     <ProfileForm />
-                </CardContent>
-            </Card>
-            <Card className="shadow-card">
-                <CardHeader>
-                    <CardTitle>Password</CardTitle>
-                    <CardDescription>Change your account password.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ChangePasswordForm />
-                </CardContent>
-            </Card>
-            <Card className="border-destructive/30 shadow-card">
-                <CardHeader>
-                    <CardTitle>Danger zone</CardTitle>
-                    <CardDescription>Permanently delete your account and all associated data.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <DeleteAccountCard />
                 </CardContent>
             </Card>
         </div>

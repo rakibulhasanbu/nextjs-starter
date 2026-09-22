@@ -33,6 +33,14 @@ export const SignInForm = () => {
     const result = await loginAction(values.email, values.password);
     setIsSubmitting(false);
 
+    if (result.status === "twoFactorRequired") {
+      const callbackUrl = searchParams.get("callbackUrl");
+      const params = new URLSearchParams({ twoFactorToken: result.twoFactorToken });
+      if (callbackUrl) params.set("callbackUrl", callbackUrl);
+      router.push(`/auth/2fa-verify?${params.toString()}`);
+      return;
+    }
+
     if (result.status === "error") {
       if (result.code === "EMAIL_NOT_VERIFIED") {
         toast.add({ title: "Verify your email", description: "We sent you a new code.", type: "info" });

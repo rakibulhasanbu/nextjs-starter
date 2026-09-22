@@ -1,18 +1,27 @@
-import { HomeAuthActions } from "@/features/auth/components/home-auth-actions";
+import { HeroActions } from "@/features/auth/components/hero-actions";
+import { HeroCodePanel } from "@/features/auth/components/hero-code-panel";
 import { Text } from "@/components/ui/text";
 
 export default function Home() {
     return (
-        <main className="content-width flex min-h-screen flex-col items-center justify-center gap-6 py-16 text-center">
-            <Text variant="h1" render={<h1 />} className="max-w-2xl">
-                A Next.js starter with auth already wired up.
-            </Text>
-            <Text variant="lead" tone="muted" className="max-w-xl">
-                Batteries-included template with authentication, Redux Toolkit Query, and a shared component library
-                ready to build on.
-            </Text>
+        <main className="layout flex min-h-[calc(100dvh-4rem)] items-center py-12">
+            <div className="grid w-full min-w-0 items-center gap-12 md:grid-cols-2 md:gap-16">
+                <div className="flex min-w-0 flex-col items-start gap-6">
+                    <Text variant="h1" render={<h1 />} className="text-left">
+                        Skip the auth boilerplate.
+                    </Text>
+                    <Text variant="lead" tone="muted" className="max-w-md text-left">
+                        Email and OTP verification, role-based access, and session management, wired up and ready
+                        to build on.
+                    </Text>
 
-            <HomeAuthActions />
+                    <HeroActions />
+                </div>
+
+                <div className="flex min-w-0 justify-center md:justify-end">
+                    <HeroCodePanel />
+                </div>
+            </div>
         </main>
     );
 }

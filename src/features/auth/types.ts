@@ -31,6 +31,7 @@ export interface User {
     role: UserRole;
     status: UserStatus;
     emailVerifiedAt: string | null;
+    twoFactorEnabled: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -39,6 +40,17 @@ export interface AuthResponse {
     accessToken: string;
     refreshToken: string;
 }
+
+/** `/auth/signin` returns tokens directly, or a short-lived token to complete the 2FA challenge. */
+export type SignInResult = AuthResponse | TwoFactorRequiredResponse;
+
+export interface TwoFactorRequiredResponse {
+    twoFactorRequired: true;
+    twoFactorToken: string;
+}
+
+export const isTwoFactorRequired = (result: SignInResult): result is TwoFactorRequiredResponse =>
+    "twoFactorRequired" in result && result.twoFactorRequired === true;
 
 export interface NavItem {
     title: string;

@@ -1,7 +1,7 @@
 "use server";
 
 import { config } from "@/config";
-import { AuthResponse, User } from "@/features/auth/types";
+import { AuthResponse, SignInResult, User } from "@/features/auth/types";
 
 import type { ApiErrorResponse, ApiSuccessResponse } from "@/lib/api-types";
 import { clearAuthCookies, getRefreshTokenCookie, setAuthCookies } from "@/lib/auth-cookies";
@@ -17,6 +17,7 @@ const AUTH_ENDPOINTS = {
     resetPassword: "/auth/reset-password",
     google: "/auth/google",
     me: "/users/me",
+    twoFactorLoginVerify: "/auth/2fa/login-verify",
 } as const;
 
 type AuthActionResult<T> =
@@ -74,7 +75,40 @@ const establishSession = async (tokens: AuthResponse): Promise<AuthActionResult<
 };
 
 export const loginAction = async (email: string, password: string) => {
-    const result = await backendRequest<AuthResponse>(AUTH_ENDPOINTS.login, { email, password });
+    const result = await backendRequest<SignInResult>(AUTH_ENDPOINTS.login, { email, password });
+    if (!result.ok) return { status: "error", error: result.error, code: result.code } as const;
+
+    // 2FA-enabled accounts get a short-lived token to complete the challenge instead of tokens directly.
+    if ("twoFactorRequired" in result.data && result.data.twoFactorRequired) {
+        return { status: "twoFactorRequired", twoFactorToken: result.data.twoFactorToken } as const;
+    }
+
+    return establishSession(result.data as AuthResponse);
+};
+
+interface Login2faVerifyActionProps {
+    twoFactorToken: string;
+    code?: string;
+    recoveryCode?: string;
+    deviceType?: string;
+    deviceName?: string;
+}
+
+/** Consumes the intermediate 2FA token plus a TOTP code or recovery code, then signs the user in. */
+export const login2faVerifyAction = async ({
+    twoFactorToken,
+    code,
+    recoveryCode,
+    deviceType,
+    deviceName,
+}: Login2faVerifyActionProps) => {
+    const result = await backendRequest<AuthResponse>(AUTH_ENDPOINTS.twoFactorLoginVerify, {
+        twoFactorToken,
+        code,
+        recoveryCode,
+        deviceType,
+        deviceName,
+    });
     if (!result.ok) return { status: "error", error: result.error, code: result.code } as const;
     return establishSession(result.data);
 };

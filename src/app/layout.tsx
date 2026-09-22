@@ -4,6 +4,7 @@ import { Montserrat, Open_Sans } from "next/font/google";
 import "./globals.css";
 
 import { Providers } from "@/components/providers";
+import { SiteNavbar } from "@/components/shared/site-navbar";
 
 const openSans = Open_Sans({
     variable: "--font-open-sans",
@@ -29,7 +30,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             className={`${openSans.variable} ${montserrat.variable} h-full antialiased`}
         >
             <body className="flex min-h-full flex-col">
-                <Providers>{children}</Providers>
+                <Providers>
+                    <SiteNavbar />
+                    {children}
+                </Providers>
             </body>
         </html>
     );

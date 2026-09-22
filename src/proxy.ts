@@ -8,7 +8,13 @@ export const ROUTES = {
     // Subset of protectedRoutes that additionally requires ADMIN or SUPER_ADMIN.
     adminOnlyRoutes: ["/dashboard"] as const,
     public: ["/"] as const,
-    auth: ["/auth/sign-in", "/auth/sign-up", "/auth/forgot-password", "/auth/verify-email"] as const,
+    auth: [
+        "/auth/sign-in",
+        "/auth/sign-up",
+        "/auth/forgot-password",
+        "/auth/verify-email",
+        "/auth/2fa-verify",
+    ] as const,
 };
 
 export const isRouteMatched = (pathname: string, routes: readonly string[]) =>
