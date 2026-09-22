@@ -96,11 +96,11 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.16 0.006 260);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.205 0.006 260);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.205 0.006 260);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
@@ -150,6 +150,25 @@
 @layer utilities {
   .layout {
     @apply mx-auto px-4 sm:px-6 xl:px-8 2xl:max-w-360;
+  }
+  .content-width {
+    @apply mx-auto w-full max-w-6xl;
+  }
+  .shadow-card {
+    box-shadow:
+      0 1px 2px -1px oklch(0 0 0 / 6%),
+      0 8px 24px -8px oklch(0 0 0 / 10%);
+  }
+  .dark .shadow-card {
+    box-shadow:
+      0 1px 0 0 oklch(1 0 0 / 4%) inset,
+      0 12px 32px -12px oklch(0 0 0 / 55%);
+  }
+  .bg-grid {
+    background-image: linear-gradient(to right, var(--border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black 40%, transparent 100%);
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;

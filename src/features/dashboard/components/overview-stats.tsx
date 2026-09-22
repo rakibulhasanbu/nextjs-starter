@@ -17,7 +17,7 @@ type StatCardProps = {
 };
 
 const StatCard = ({ label, value, isLoading, icon }: StatCardProps) => (
-    <Card className="shadow-card">
+    <Card className="shadow-card transition-colors hover:border-brand/30">
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
             <div className="flex flex-col gap-1">
                 <Text variant="small" tone="muted">
@@ -29,7 +29,9 @@ const StatCard = ({ label, value, isLoading, icon }: StatCardProps) => (
                     <CardTitle className="text-2xl">{value ?? 0}</CardTitle>
                 )}
             </div>
-            <div className="text-muted-foreground">{icon}</div>
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand [&_svg]:size-4.5">
+                {icon}
+            </div>
         </CardHeader>
     </Card>
 );

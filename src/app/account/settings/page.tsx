@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Settings" };
 
 export default function AccountSettingsPage() {
     return (
-        <div className="content-width flex flex-1 flex-col gap-6 p-4 sm:p-6">
+        <>
             <PageHeader title="Settings" description="Manage your password, sessions, and account security." />
             <Card className="shadow-card">
                 <CardHeader>
@@ -43,6 +43,6 @@ export default function AccountSettingsPage() {
                     <DeleteAccountCard />
                 </CardContent>
             </Card>
-        </div>
+        </>
     );
 }

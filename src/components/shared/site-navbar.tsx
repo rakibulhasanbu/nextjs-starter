@@ -41,7 +41,7 @@ export const SiteNavbar = () => {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    if (pathname?.startsWith("/dashboard")) return null;
+    if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/auth")) return null;
 
     const canViewDashboard = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
     const displayName = user ? user.name || user.username : "";
