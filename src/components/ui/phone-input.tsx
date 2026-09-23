@@ -16,7 +16,7 @@ import { useDebouncedCallback } from "@/components/table/hooks/use-debounced-cal
 export type PhoneInputValue = Value;
 
 const PhoneNumberField = ({ className, ...props }: React.ComponentProps<"input">) => (
-  <InputGroupInput className={cn("pl-2.5", className)} {...props} />
+  <InputGroupInput className={cn("pl-3", className)} {...props} />
 );
 
 type PhoneInputProps = {
