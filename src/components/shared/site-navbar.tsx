@@ -1,15 +1,13 @@
 "use client";
 
 import { useState } from "react";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { hasPermission, PERMISSIONS } from "@/features/auth/types";
+import { useAuthStore } from "@/store/auth-store";
 import { LayoutDashboardIcon, LogOutIcon, MenuIcon, SettingsIcon, UserIcon } from "lucide-react";
 
-import { Logo } from "@/components/shared/logo";
-import { LinkButton } from "@/components/shared/link-button";
-import { LoadingButton } from "@/components/shared/loading-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,8 +21,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Text } from "@/components/ui/text";
-import { UserRole } from "@/features/auth/types";
-import { useAuthStore } from "@/store/auth-store";
+import { LinkButton } from "@/components/shared/link-button";
+import { LoadingButton } from "@/components/shared/loading-button";
+import { Logo } from "@/components/shared/logo";
 
 const initials = (name: string) =>
     name
@@ -43,7 +42,7 @@ export const SiteNavbar = () => {
 
     if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/auth")) return null;
 
-    const canViewDashboard = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
+    const canViewDashboard = hasPermission(user?.permissions, PERMISSIONS.USER_READ_ANY);
     const displayName = user ? user.name || user.username : "";
 
     const handleSignOut = async () => {
@@ -105,7 +104,10 @@ export const SiteNavbar = () => {
                             <LinkButton href="/auth/sign-in" variant="ghost">
                                 Sign in
                             </LinkButton>
-                            <LinkButton href="/auth/sign-up" className="bg-brand text-brand-foreground hover:bg-brand/90">
+                            <LinkButton
+                                href="/auth/sign-up"
+                                className="bg-brand text-brand-foreground hover:bg-brand/90"
+                            >
                                 Get started
                             </LinkButton>
                         </>

@@ -7,7 +7,7 @@ import { Text } from "@/components/ui/text";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminUsersCount } from "@/features/dashboard/api";
 import { UserStatus } from "@/features/dashboard/types";
-import { UserRole } from "@/features/auth/types";
+import { ROLE_IDS } from "@/features/auth/types";
 
 type StatCardProps = {
     label: string;
@@ -42,7 +42,7 @@ export const OverviewStats = () => {
     const active = useAdminUsersCount({ status: UserStatus.ACTIVE });
     const pending = useAdminUsersCount({ status: UserStatus.PENDING_VERIFICATION });
     const suspended = useAdminUsersCount({ status: UserStatus.SUSPENDED });
-    const admins = useAdminUsersCount({ role: UserRole.ADMIN });
+    const admins = useAdminUsersCount({ roleId: ROLE_IDS.ADMIN });
 
     return (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

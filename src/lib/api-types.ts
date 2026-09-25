@@ -23,5 +23,12 @@ export type ApiErrorResponse = {
     statusCode: number;
     code: string;
     message: string;
+    /** Per-field validation failures. Only `VALIDATION_ERROR` sets this. */
     details?: unknown[];
+    /**
+     * Extra machine-readable context a specific error code carries — e.g.
+     * `ACCOUNT_PENDING_DELETION` carries `graceEndsAt` as an ISO string. Read it
+     * only after narrowing on `code`.
+     */
+    [key: string]: unknown;
 };

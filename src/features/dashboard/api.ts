@@ -1,8 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch, apiFetchPaginated, QueryParams } from "@/lib/api-client";
-import { AdminUpdateUserFormValues } from "@/features/dashboard/schemas";
-import { AdminUser, AdminUserSession, UserStatus } from "@/features/dashboard/types";
+import { AdminUpdateUserPayload, AdminUser, AdminUserSession, UserStatus } from "@/features/dashboard/types";
 
 export const adminUsersKeys = {
     all: ["admin-users"] as const,
@@ -46,8 +45,22 @@ const useInvalidateAdminUsers = () => {
 export const useUpdateAdminUserMutation = (id: string) => {
     const invalidate = useInvalidateAdminUsers();
     return useMutation({
-        mutationFn: (data: Partial<AdminUpdateUserFormValues>) =>
+        mutationFn: (data: AdminUpdateUserPayload) =>
             apiFetch<AdminUser>(`/admin/users/${id}`, { method: "PATCH", body: data }),
+        onSuccess: () => invalidate(id),
+    });
+};
+
+/**
+ * Roles are deliberately not editable through `PATCH /admin/users/:id` — they
+ * sit behind their own `role:assign` permission and their own endpoint, which
+ * replaces the whole set (the backend always re-adds the baseline `user` role).
+ */
+export const useAssignUserRolesMutation = (id: string) => {
+    const invalidate = useInvalidateAdminUsers();
+    return useMutation({
+        mutationFn: (roleIds: string[]) =>
+            apiFetch<AdminUser>(`/admin/users/${id}/roles`, { method: "PATCH", body: { roleIds } }),
         onSuccess: () => invalidate(id),
     });
 };
@@ -58,14 +71,6 @@ export const useUpdateUserStatusMutation = () => {
         mutationFn: ({ id, status }: { id: string; status: UserStatus }) =>
             apiFetch<AdminUser>(`/admin/users/${id}/status`, { method: "PATCH", body: { status } }),
         onSuccess: (_data, vars) => invalidate(vars.id),
-    });
-};
-
-export const useSoftDeleteAdminUserMutation = () => {
-    const invalidate = useInvalidateAdminUsers();
-    return useMutation({
-        mutationFn: (id: string) => apiFetch<AdminUser>(`/admin/users/${id}`, { method: "DELETE" }),
-        onSuccess: (_data, id) => invalidate(id),
     });
 };
 
@@ -99,8 +104,17 @@ export const useRevokeAllAdminUserSessionsMutation = (userId: string) => {
     });
 };
 
-export const useInviteAdminMutation = () =>
-    useMutation({
-        mutationFn: (email: string) =>
-            apiFetch<unknown>("/admin/users/invite-admin", { method: "POST", body: { email } }),
+/**
+ * Creates the account and emails a password-reset code — completing that reset
+ * is what both sets a real password and proves the invitee owns the address.
+ * The backend always re-adds the baseline `user` role, so `roleIds` only needs
+ * to carry the elevated role, if any.
+ */
+export const useInviteUserMutation = () => {
+    const invalidate = useInvalidateAdminUsers();
+    return useMutation({
+        mutationFn: ({ email, roleIds }: { email: string; roleIds: string[] }) =>
+            apiFetch<AdminUser>("/admin/users/invite", { method: "POST", body: { email, roleIds } }),
+        onSuccess: () => invalidate(),
     });
+};

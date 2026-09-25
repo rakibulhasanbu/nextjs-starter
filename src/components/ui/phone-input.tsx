@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import PhoneNumberInput, {
+  getCountryCallingCode,
   parsePhoneNumber,
   type Country,
   type Value,
@@ -50,13 +51,32 @@ export const PhoneInput = ({
   // from react-hook-form) races that effect and can spiral into "Maximum update depth exceeded"
   // while typing quickly. Debouncing the outward `onChange` breaks that race.
   // https://github.com/catamphetamine/react-phone-number-input/issues/441
-  const debouncedOnChange = useDebouncedCallback((next?: PhoneInputValue) => onChange(next), 100);
+  const countryRef = useRef(country);
+  const debouncedOnChange = useDebouncedCallback((next?: PhoneInputValue) => {
+    // Drop a value typed for the previous country that fires after the country has changed.
+    if (next && !next.startsWith(`+${getCountryCallingCode(countryRef.current)}`)) return;
+    onChange(next);
+  }, 100);
+
+  // The input requires `value` to belong to `country`, otherwise it logs a mismatch error. Move
+  // the national number over to the new calling code in the same update as the country change.
+  const handleCountryChange = (next: Country) => {
+    if (next === country) return;
+    countryRef.current = next;
+    setCountry(next);
+    const nationalNumber = parsePhoneNumber(value ?? "")?.nationalNumber;
+    onChange(
+      nationalNumber
+        ? (`+${getCountryCallingCode(next)}${nationalNumber}` as PhoneInputValue)
+        : undefined
+    );
+  };
 
   return (
     <InputGroup className="gap-0">
       <CountrySelect
         value={country}
-        onChange={setCountry}
+        onChange={handleCountryChange}
         disabled={disabled}
         readOnly={readOnly}
       />

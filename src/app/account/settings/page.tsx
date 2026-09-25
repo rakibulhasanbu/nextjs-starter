@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChangePasswordForm } from "@/features/account/components/change-password-form";
 import { DeleteAccountCard } from "@/features/account/components/delete-account-card";
 import { TwoFactorAuthCard } from "@/features/two-factor/components/two-factor-auth-card";
+import { PasskeysCard } from "@/features/passkeys/components/passkeys-card";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -16,12 +17,13 @@ export default function AccountSettingsPage() {
             <Card className="shadow-card">
                 <CardHeader>
                     <CardTitle>Password</CardTitle>
-                    <CardDescription>Change your account password.</CardDescription>
+                    <CardDescription>Manage the password used to sign in to your account.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ChangePasswordForm />
                 </CardContent>
             </Card>
+            <PasskeysCard />
             <TwoFactorAuthCard />
             <Card className="shadow-card">
                 <CardHeader>

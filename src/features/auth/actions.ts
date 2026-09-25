@@ -5,6 +5,7 @@ import { AuthResponse, SignInResult, User } from "@/features/auth/types";
 
 import type { ApiErrorResponse, ApiSuccessResponse } from "@/lib/api-types";
 import { clearAuthCookies, getRefreshTokenCookie, setAuthCookies } from "@/lib/auth-cookies";
+import { fetchMe } from "@/lib/current-user";
 
 const AUTH_ENDPOINTS = {
     register: "/auth/signup",
@@ -18,18 +19,18 @@ const AUTH_ENDPOINTS = {
     google: "/auth/google",
     me: "/users/me",
     twoFactorLoginVerify: "/auth/2fa/login-verify",
+    reactivateAccount: "/auth/reactivate-account",
 } as const;
 
 type AuthActionResult<T> =
-    | { status: "success"; data: T }
-    | { status: "error"; error: string; code?: string };
+    { status: "success"; data: T } | { status: "error"; error: string; code?: string; graceEndsAt?: string };
 
 /** Raw POST against the backend — every server action below is this call with a different endpoint/body/headers. */
 const backendRequest = async <T>(
     endpoint: string,
     body: unknown,
     extraHeaders?: Record<string, string>
-): Promise<{ ok: true; data: T } | { ok: false; error: string; code?: string }> => {
+): Promise<{ ok: true; data: T } | { ok: false; error: string; code?: string; graceEndsAt?: string }> => {
     try {
         const response = await fetch(`${config.serverUrl}${endpoint}`, {
             method: "POST",
@@ -44,8 +45,15 @@ const backendRequest = async <T>(
         const json = response.status === 204 ? null : await response.json().catch(() => null);
 
         if (!response.ok) {
-            const { message, code } = (json as ApiErrorResponse) ?? {};
-            return { ok: false, error: message || "Something went wrong", code };
+            const { message, code, graceEndsAt } = (json as ApiErrorResponse) ?? {};
+            return {
+                ok: false,
+                error: message || "Something went wrong",
+                code,
+                // Only `ACCOUNT_PENDING_DELETION` carries this; it is the
+                // deadline after which the account cannot be restored.
+                graceEndsAt: typeof graceEndsAt === "string" ? graceEndsAt : undefined,
+            };
         }
 
         const data = json === null ? null : (json as ApiSuccessResponse<T>).data;
@@ -53,15 +61,6 @@ const backendRequest = async <T>(
     } catch (error) {
         return { ok: false, error: error instanceof Error ? error.message : "Something went wrong" };
     }
-};
-
-const fetchMe = async (accessToken: string): Promise<User | null> => {
-    const response = await fetch(`${config.serverUrl}${AUTH_ENDPOINTS.me}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!response.ok) return null;
-    const json = (await response.json()) as ApiSuccessResponse<User>;
-    return json.data;
 };
 
 /** Login/register-with-Google both return tokens only (no user) — fetch `/users/me` and persist the session. */
@@ -76,7 +75,13 @@ const establishSession = async (tokens: AuthResponse): Promise<AuthActionResult<
 
 export const loginAction = async (email: string, password: string) => {
     const result = await backendRequest<SignInResult>(AUTH_ENDPOINTS.login, { email, password });
-    if (!result.ok) return { status: "error", error: result.error, code: result.code } as const;
+    if (!result.ok)
+        return {
+            status: "error",
+            error: result.error,
+            code: result.code,
+            graceEndsAt: result.graceEndsAt,
+        } as const;
 
     // 2FA-enabled accounts get a short-lived token to complete the challenge instead of tokens directly.
     if ("twoFactorRequired" in result.data && result.data.twoFactorRequired) {
@@ -109,7 +114,13 @@ export const login2faVerifyAction = async ({
         deviceType,
         deviceName,
     });
-    if (!result.ok) return { status: "error", error: result.error, code: result.code } as const;
+    if (!result.ok)
+        return {
+            status: "error",
+            error: result.error,
+            code: result.code,
+            graceEndsAt: result.graceEndsAt,
+        } as const;
     return establishSession(result.data);
 };
 
@@ -128,8 +139,26 @@ export const registerAction = async ({ name, email, phone, password }: RegisterA
         phone: phone || undefined,
         password,
     });
-    if (!result.ok) return { status: "error", error: result.error } as const;
+    if (!result.ok)
+        return {
+            status: "error",
+            error: result.error,
+            code: result.code,
+            graceEndsAt: result.graceEndsAt,
+        } as const;
     return { status: "success", data: result.data } as const;
+};
+
+/**
+ * Undoes a self-deletion while the account is still inside its grace period.
+ * The code is not requested from here — the backend mails it automatically when
+ * sign-in, sign-up or Google login hits a deleted account and answers 409
+ * `ACCOUNT_PENDING_DELETION`, which is what routes the user to this screen.
+ */
+export const reactivateAccountAction = async (email: string, code: string) => {
+    const result = await backendRequest<null>(AUTH_ENDPOINTS.reactivateAccount, { email, code });
+    if (!result.ok) return { status: "error", error: result.error } as const;
+    return { status: "success", data: null } as const;
 };
 
 /** Consumes the 6-digit code emailed to the user, then signs them in — proving the code is proof of ownership. */
@@ -168,9 +197,22 @@ export const resetPasswordAction = async ({
 
 export const loginWithGoogleAction = async (idToken: string) => {
     const result = await backendRequest<AuthResponse>(AUTH_ENDPOINTS.google, { idToken });
-    if (!result.ok) return { status: "error", error: result.error } as const;
+    if (!result.ok)
+        return {
+            status: "error",
+            error: result.error,
+            code: result.code,
+            graceEndsAt: result.graceEndsAt,
+        } as const;
     return establishSession(result.data);
 };
+
+/**
+ * The passkey exchange happens in the browser (the WebAuthn call needs `window`),
+ * so the resulting tokens arrive client-side. This puts them into the httpOnly
+ * cookies `proxy.ts` reads, which only a server action can write.
+ */
+export const establishPasskeySessionAction = async (tokens: AuthResponse) => establishSession(tokens);
 
 export const logoutAction = async () => {
     const refreshToken = await getRefreshTokenCookie();
@@ -180,6 +222,18 @@ export const logoutAction = async () => {
     await clearAuthCookies();
 };
 
+/**
+ * Called after the api client rotates tokens. The `user` cookie is refreshed
+ * along with them: it carries the roles and permissions both `proxy.ts` and the
+ * dashboard layout gate on, and leaving it untouched meant a revoked role or a
+ * suspension did not reach the client gate until the next sign-in.
+ *
+ * A failed `/users/me` leaves the old snapshot in place rather than signing the
+ * user out — the tokens themselves are fresh, and the api client will surface
+ * any real authorization change on its next call.
+ */
 export const revalidateTokensAction = async (accessToken: string, refreshToken: string) => {
-    await setAuthCookies({ accessToken, refreshToken });
+    const user = await fetchMe(accessToken);
+    await setAuthCookies({ accessToken, refreshToken, user: user ?? undefined });
+    return user;
 };

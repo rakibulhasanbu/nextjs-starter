@@ -14,11 +14,12 @@ import { useAlert } from "@/hooks/use-alert";
 import { toast } from "@/components/ui/toast";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, QueryParams } from "@/lib/api-client";
-import { UserRole } from "@/features/auth/types";
+import { hasPermission, PERMISSIONS } from "@/features/auth/types";
+import { useMe } from "@/features/account/api";
+import { useRoles } from "@/features/roles/api";
 import { useAuthStore } from "@/store/auth-store";
 import {
     useAdminUsers,
-    useSoftDeleteAdminUserMutation,
     useRestoreAdminUserMutation,
     useTriggerPasswordResetMutation,
     useUpdateUserStatusMutation,
@@ -26,14 +27,8 @@ import {
 import { buildUsersColumns, canActorManage } from "@/features/dashboard/components/users-columns";
 import { UserEditDialog } from "@/features/dashboard/components/user-edit-dialog";
 import { UserSessionsDialog } from "@/features/dashboard/components/user-sessions-dialog";
-import { InviteAdminDialog } from "@/features/dashboard/components/invite-admin-dialog";
+import { InviteUserDialog } from "@/features/dashboard/components/invite-user-dialog";
 import { AdminUser, UserStatus } from "@/features/dashboard/types";
-
-const roleOptions = [
-    { value: UserRole.USER, label: "User" },
-    { value: UserRole.ADMIN, label: "Admin" },
-    { value: UserRole.SUPER_ADMIN, label: "Super admin" },
-];
 
 const statusOptions = [
     { value: UserStatus.ACTIVE, label: "Active" },
@@ -44,7 +39,18 @@ const statusOptions = [
 const UsersTableInner = () => {
     const { pagination, setPagination, searchTerm, columnFilters } = useDataTableUrlState({ defaultPageSize: 20 });
     const alert = useAlert();
-    const actorRole = useAuthStore((state) => state.user?.role);
+    const actorId = useAuthStore((state) => state.user?.id);
+    const { data: me } = useMe();
+    const { data: roles } = useRoles();
+
+    // Gate on the permissions the backend actually checks, not on a role name.
+    const canInvite = hasPermission(me?.permissions, PERMISSIONS.USER_INVITE);
+    const canAssignRoles = hasPermission(me?.permissions, PERMISSIONS.ROLE_ASSIGN);
+
+    const roleOptions = useMemo(
+        () => (roles ?? []).map((role) => ({ value: role.id, label: role.name })),
+        [roles]
+    );
 
     const [view, setView] = useState<"active" | "deleted">("active");
     const [editing, setEditing] = useState<AdminUser | null>(null);
@@ -56,13 +62,14 @@ const UsersTableInner = () => {
     };
 
     const params = useMemo<QueryParams>(() => {
-        const role = columnFilters.find((f) => f.id === "role")?.value;
+        const roleId = columnFilters.find((f) => f.id === "roleIds")?.value;
         const status = columnFilters.find((f) => f.id === "status")?.value;
         return {
             page: pagination.pageIndex + 1,
             limit: pagination.pageSize,
             search: searchTerm || undefined,
-            role: Array.isArray(role) ? role[0] : role,
+            // The backend's list query is a strictObject keyed on `roleId` — `role` would 400.
+            roleId: Array.isArray(roleId) ? roleId[0] : roleId,
             status: view === "deleted" ? undefined : Array.isArray(status) ? status[0] : status,
             deleted: view === "deleted" ? "true" : undefined,
         };
@@ -72,7 +79,6 @@ const UsersTableInner = () => {
 
     const updateStatus = useUpdateUserStatusMutation();
     const triggerReset = useTriggerPasswordResetMutation();
-    const softDelete = useSoftDeleteAdminUserMutation();
     const restore = useRestoreAdminUserMutation();
 
     const handleToggleStatus = (user: AdminUser) => {
@@ -116,19 +122,6 @@ const UsersTableInner = () => {
         });
     };
 
-    const handleDelete = (user: AdminUser) => {
-        alert.fire({
-            title: "Delete this user?",
-            text: "This soft-deletes the account. You can restore it later.",
-            confirmButtonOptions: { variant: "destructive", text: "Delete" },
-            showCancelButton: true,
-            onConfirm: async () => {
-                await softDelete.mutateAsync(user.id);
-                toast.add({ title: "User deleted" });
-            },
-        });
-    };
-
     const handleRestore = async (user: AdminUser) => {
         await restore.mutateAsync(user.id);
         toast.add({ title: "User restored" });
@@ -138,16 +131,15 @@ const UsersTableInner = () => {
         () =>
             buildUsersColumns({
                 view,
-                canManage: (user) => canActorManage(actorRole, user),
+                canManage: (user) => canActorManage(actorId, user),
                 onEdit: setEditing,
                 onToggleStatus: handleToggleStatus,
                 onViewSessions: setViewingSessions,
                 onResetPassword: handleResetPassword,
-                onDelete: handleDelete,
                 onRestore: handleRestore,
             }),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [actorRole, view]
+        [actorId, view]
     );
 
     return (
@@ -162,23 +154,23 @@ const UsersTableInner = () => {
                 filters={
                     <>
                         <DataTableSearch placeholder="Search by name, email, username..." />
-                        <DataTableFacetedFilter columnId="role" title="Role" options={roleOptions} />
+                        <DataTableFacetedFilter columnId="roleIds" title="Role" options={roleOptions} />
                         {view === "active" && (
                             <DataTableFacetedFilter columnId="status" title="Status" options={statusOptions} />
                         )}
                     </>
                 }
-                actions={actorRole === UserRole.SUPER_ADMIN ? <InviteAdminDialog /> : undefined}
+                actions={canInvite ? <InviteUserDialog /> : undefined}
             />
             <DataTable<AdminUser>
                 isLoading={isLoading}
                 emptyTitle="No users found"
                 emptyDescription="Try adjusting your search or filters."
-                onRowClick={(user) => (canActorManage(actorRole, user) ? setEditing(user) : undefined)}
+                onRowClick={(user) => (canActorManage(actorId, user) ? setEditing(user) : undefined)}
             />
             <UserEditDialog
                 user={editing}
-                canEditRole={actorRole === UserRole.SUPER_ADMIN}
+                canEditRoles={canAssignRoles}
                 onOpenChange={(open) => !open && setEditing(null)}
             />
             <UserSessionsDialog user={viewingSessions} onOpenChange={(open) => !open && setViewingSessions(null)} />

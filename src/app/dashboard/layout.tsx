@@ -1,13 +1,21 @@
 import { redirect } from "next/navigation";
 
-import { getUserCookie } from "@/lib/auth-cookies";
-import { UserRole } from "@/features/auth/types";
+import { hasPermission, PERMISSIONS } from "@/features/auth/types";
 import { DashboardShell } from "@/features/dashboard/components/dashboard-shell";
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const user = await getUserCookie();
+import { getCurrentUser } from "@/lib/current-user";
 
-    if (!user || (user.role !== UserRole.ADMIN && user.role !== UserRole.SUPER_ADMIN)) {
+/**
+ * The real gate for the admin area. `proxy.ts` has already redirected on the
+ * `user` cookie, but that is a snapshot; this re-reads `/users/me` so a revoked
+ * role or a suspension takes effect on the next navigation instead of at the
+ * next sign-in. Gating on a permission key, not a role name, mirrors the
+ * backend — nothing there checks what a role is called.
+ */
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+    const user = await getCurrentUser();
+
+    if (!user || !hasPermission(user.permissions, PERMISSIONS.USER_READ_ANY)) {
         redirect("/");
     }
 

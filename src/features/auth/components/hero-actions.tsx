@@ -1,18 +1,18 @@
 "use client";
 
+import { hasPermission, PERMISSIONS } from "@/features/auth/types";
+import { useAuthStore } from "@/store/auth-store";
 import { ArrowRightIcon } from "lucide-react";
 
-import { LinkButton } from "@/components/shared/link-button";
 import { Text } from "@/components/ui/text";
-import { UserRole } from "@/features/auth/types";
-import { useAuthStore } from "@/store/auth-store";
+import { LinkButton } from "@/components/shared/link-button";
 
 export const HeroActions = () => {
     const user = useAuthStore((state) => state.user);
 
     if (user) {
         const displayName = user.name || user.username;
-        const canViewDashboard = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+        const canViewDashboard = hasPermission(user.permissions, PERMISSIONS.USER_READ_ANY);
 
         return (
             <div className="flex flex-col items-start gap-4">

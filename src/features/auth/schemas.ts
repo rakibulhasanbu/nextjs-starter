@@ -57,3 +57,22 @@ export const newPasswordFormSchema = z
   })
 
 export type NewPasswordFormValues = z.infer<typeof newPasswordFormSchema>
+
+export const reactivateAccountFormSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Enter a valid email address"),
+  code: otpCodeSchema,
+})
+
+export type ReactivateAccountFormValues = z.infer<typeof reactivateAccountFormSchema>
+
+export const setPasswordFormSchema = z
+  .object({
+    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Confirm your password"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+
+export type SetPasswordFormValues = z.infer<typeof setPasswordFormSchema>

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { User, UserRole } from "@/features/auth/types";
+import { hasPermission, PERMISSIONS, User } from "@/features/auth/types";
 
 export const ROUTES = {
     // Requires a signed-in user (any role).
     protectedRoutes: ["/dashboard", "/account"] as const,
-    // Subset of protectedRoutes that additionally requires ADMIN or SUPER_ADMIN.
+    // Subset of protectedRoutes that additionally requires admin-level access.
     adminOnlyRoutes: ["/dashboard"] as const,
     public: ["/"] as const,
     auth: [
@@ -14,6 +14,7 @@ export const ROUTES = {
         "/auth/forgot-password",
         "/auth/verify-email",
         "/auth/2fa-verify",
+        "/auth/reactivate-account",
     ] as const,
 };
 
@@ -64,10 +65,10 @@ function redirectTo(path: string, req: NextRequest): NextResponse {
 }
 
 // NOTE: this proxy only redirects for UX — it trusts cookie *presence* and the
-// unsigned `user` JSON cookie for role, neither of which it can
+// unsigned `user` JSON cookie for permissions, neither of which it can
 // cryptographically verify. It is NOT an authorization boundary. Every
 // privileged backend endpoint MUST independently verify the JWT and
-// re-derive the role server-side; never rely on this gate alone.
+// re-derive the roles server-side; never rely on this gate alone.
 const checkAuth = (req: NextRequest) => {
     const accessToken = req.cookies.get("accessToken")?.value;
     const refreshToken = req.cookies.get("refreshToken")?.value;
@@ -79,11 +80,17 @@ const checkAuth = (req: NextRequest) => {
     return false;
 };
 
+/**
+ * Gates on a permission key rather than a role name, matching how the backend
+ * decides: roles are created at runtime and their contents are editable, so
+ * "is this role called admin" answers the wrong question. Reading any user but
+ * yourself is what the dashboard is for, hence `USER_READ_ANY`.
+ */
 const isAdmin = (req: NextRequest) => {
     const userCookie = req.cookies.get("user")?.value;
     const user = userCookie ? (JSON.parse(userCookie) as User) : ({} as User);
 
-    return user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
+    return hasPermission(user?.permissions, PERMISSIONS.USER_READ_ANY);
 };
 
 // Matcher configuration - exclude static files and API routes

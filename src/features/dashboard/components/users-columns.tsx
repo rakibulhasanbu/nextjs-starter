@@ -7,7 +7,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,14 @@ import { Text } from "@/components/ui/text";
 import { DataTableColumnHeader } from "@/components/table/data-table-column-header";
 import type { DataTableColumnDef } from "@/components/table/features";
 import { AdminUser, UserStatus } from "@/features/dashboard/types";
-import { UserRole } from "@/features/auth/types";
+import { ROLE_IDS } from "@/features/auth/types";
+
+/** Display text for the seeded system roles; runtime-created roles fall back to their slug. */
+const ROLE_LABELS: Record<string, string> = {
+    [ROLE_IDS.USER]: "User",
+    [ROLE_IDS.ADMIN]: "Admin",
+    [ROLE_IDS.SUPER_ADMIN]: "Super admin",
+};
 
 const statusVariant: Record<UserStatus, "default" | "secondary" | "destructive"> = {
     [UserStatus.ACTIVE]: "default",
@@ -33,7 +39,6 @@ type UsersColumnsOptions = {
     onToggleStatus: (user: AdminUser) => void;
     onViewSessions: (user: AdminUser) => void;
     onResetPassword: (user: AdminUser) => void;
-    onDelete: (user: AdminUser) => void;
     onRestore: (user: AdminUser) => void;
 };
 
@@ -44,7 +49,6 @@ export const buildUsersColumns = ({
     onToggleStatus,
     onViewSessions,
     onResetPassword,
-    onDelete,
     onRestore,
 }: UsersColumnsOptions): DataTableColumnDef<AdminUser>[] => [
     {
@@ -62,10 +66,18 @@ export const buildUsersColumns = ({
         ),
     },
     {
-        accessorKey: "role",
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Role" />,
+        accessorKey: "roleIds",
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Roles" />,
         filterFn: "arrHas",
-        cell: ({ row }) => <Badge variant="outline">{row.original.role}</Badge>,
+        cell: ({ row }) => (
+            <div className="flex flex-wrap gap-1">
+                {row.original.roleIds.map((roleId) => (
+                    <Badge key={roleId} variant="outline">
+                        {ROLE_LABELS[roleId] ?? roleId}
+                    </Badge>
+                ))}
+            </div>
+        ),
     },
     ...(view === "active"
         ? [
@@ -147,13 +159,11 @@ export const buildUsersColumns = ({
                                 Send password reset
                             </DropdownMenuItem>
                         )}
-                        <DropdownMenuSeparator />
-                        {isDeleted ? (
+                        {/* No delete action: the backend has no admin-delete route by design —
+                            admins suspend, and only an owner can delete their own account.
+                            Restore exists for owner-deleted accounts still in their grace period. */}
+                        {isDeleted && (
                             <DropdownMenuItem onClick={() => onRestore(user)}>Restore</DropdownMenuItem>
-                        ) : (
-                            <DropdownMenuItem variant="destructive" onClick={() => onDelete(user)}>
-                                Delete
-                            </DropdownMenuItem>
                         )}
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -162,9 +172,10 @@ export const buildUsersColumns = ({
     },
 ];
 
-/** ADMIN actors may only manage plain USER accounts; SUPER_ADMIN manages everyone. */
-export const canActorManage = (actorRole: UserRole | undefined, target: AdminUser) => {
-    if (actorRole === UserRole.SUPER_ADMIN) return true;
-    if (actorRole === UserRole.ADMIN) return target.role === UserRole.USER;
-    return false;
-};
+/**
+ * `GET /admin/users` already filters to accounts ranked strictly below the
+ * actor, plus the actor themselves — so anything that reaches this table is
+ * manageable except the actor's own row, which the admin routes reject.
+ */
+export const canActorManage = (actorId: string | undefined, target: AdminUser) =>
+    !!actorId && target.id !== actorId;

@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import { UserRole } from "@/features/auth/types";
 import { UserStatus } from "@/features/dashboard/types";
 
 export const adminUpdateUserFormSchema = z.object({
@@ -14,8 +13,9 @@ export const adminUpdateUserFormSchema = z.object({
         .optional()
         .or(z.literal("")),
     phone: z.string().min(5).max(20).optional().or(z.literal("")),
-    // SUPER_ADMIN can never be assigned here — it's a seed-only singleton.
-    role: z.enum([UserRole.USER, UserRole.ADMIN]),
+    // Elevated roles only; the backend re-adds the baseline `user` role and
+    // refuses anything ranked at or above the actor's own.
+    roleIds: z.array(z.string()),
 });
 
 export type AdminUpdateUserFormValues = z.infer<typeof adminUpdateUserFormSchema>;
@@ -26,8 +26,9 @@ export const updateStatusFormSchema = z.object({
 
 export type UpdateStatusFormValues = z.infer<typeof updateStatusFormSchema>;
 
-export const inviteAdminFormSchema = z.object({
+export const inviteUserFormSchema = z.object({
     email: z.email("Enter a valid email"),
+    roleIds: z.array(z.string()),
 });
 
-export type InviteAdminFormValues = z.infer<typeof inviteAdminFormSchema>;
+export type InviteUserFormValues = z.infer<typeof inviteUserFormSchema>;

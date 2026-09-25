@@ -1,14 +1,16 @@
 "use client";
 
+import { useMySessions, useRevokeAllSessionsMutation, useRevokeSessionMutation } from "@/features/account/api";
+import { useAuthStore } from "@/store/auth-store";
 import { MonitorIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Text } from "@/components/ui/text";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useAlert } from "@/hooks/use-alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Text } from "@/components/ui/text";
 import { toast } from "@/components/ui/toast";
-import { useMySessions, useRevokeAllSessionsMutation, useRevokeSessionMutation } from "@/features/account/api";
 
 export const SessionsList = () => {
     const alert = useAlert();
@@ -16,15 +18,28 @@ export const SessionsList = () => {
     const revokeSession = useRevokeSessionMutation();
     const revokeAll = useRevokeAllSessionsMutation();
 
+    /** Revoking your own row is a sign-out, so it ends the session here instead of leaving a dead UI behind. */
+    const handleRevoke = async (sessionId: string, isCurrent: boolean) => {
+        await revokeSession.mutateAsync(sessionId);
+        if (isCurrent) {
+            toast.add({ title: "Signed out", description: "Sign in again to continue." });
+            await useAuthStore.getState().logoutWithReload();
+        }
+    };
+
     const handleRevokeAll = () => {
         alert.fire({
-            title: "Sign out of all other devices?",
-            text: "You'll stay signed in here; every other session is revoked.",
+            title: "Sign out of all devices?",
+            text: "This includes this one — every session is revoked and you'll need to sign in again.",
             confirmButtonOptions: { variant: "destructive", text: "Revoke all" },
             showCancelButton: true,
             onConfirm: async () => {
                 await revokeAll.mutateAsync();
-                toast.add({ title: "All sessions revoked" });
+                // The backend revokes every refresh token and bumps tokenVersion,
+                // so this session is gone too — end it here rather than letting
+                // the next request fail its way to a logout.
+                toast.add({ title: "All sessions revoked", description: "Sign in again to continue." });
+                await useAuthStore.getState().logoutWithReload();
             },
         });
     };
@@ -56,16 +71,19 @@ export const SessionsList = () => {
         <div className="flex flex-col gap-3">
             {sessions.length > 1 && (
                 <Button variant="outline" size="sm" className="self-end" onClick={handleRevokeAll}>
-                    Sign out all other devices
+                    Sign out all devices
                 </Button>
             )}
             <div className="flex flex-col gap-2">
                 {sessions.map((session) => (
                     <div key={session.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
                         <div className="flex flex-col">
-                            <Text variant="small" weight="medium">
-                                {session.deviceName || session.deviceType || "Unknown device"}
-                            </Text>
+                            <div className="flex items-center gap-2">
+                                <Text variant="small" weight="medium">
+                                    {session.deviceName || session.deviceType || "Unknown device"}
+                                </Text>
+                                {session.isCurrent && <Badge variant="secondary">This device</Badge>}
+                            </div>
                             <Text variant="small" tone="muted">
                                 {session.ipAddress ?? "Unknown IP"} · last active{" "}
                                 {new Date(session.lastUsedAt).toLocaleString()}
@@ -75,9 +93,9 @@ export const SessionsList = () => {
                             variant="ghost"
                             size="sm"
                             disabled={revokeSession.isPending}
-                            onClick={() => revokeSession.mutate(session.id)}
+                            onClick={() => void handleRevoke(session.id, session.isCurrent)}
                         >
-                            Revoke
+                            {session.isCurrent ? "Sign out" : "Revoke"}
                         </Button>
                     </div>
                 ))}

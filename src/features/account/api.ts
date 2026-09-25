@@ -1,8 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api-client";
-import { UpdateProfileFormValues } from "@/features/account/schemas";
-import { AccountSession, AccountUser } from "@/features/account/types";
+import { AccountSession, AccountUser, UpdateMePayload } from "@/features/account/types";
 
 export const accountKeys = {
     me: ["account", "me"] as const,
@@ -18,7 +17,7 @@ export const useMe = () =>
 export const useUpdateMeMutation = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (data: Partial<UpdateProfileFormValues>) =>
+        mutationFn: (data: UpdateMePayload) =>
             apiFetch<AccountUser>("/users/me", { method: "PATCH", body: data }),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.me }),
     });
@@ -29,6 +28,20 @@ export const useChangePasswordMutation = () =>
         mutationFn: (data: { currentPassword: string; newPassword: string }) =>
             apiFetch<void>("/auth/change-password", { method: "POST", body: data }),
     });
+
+/**
+ * For accounts with no password yet (Google- or passkey-only). Unlike
+ * change-password, this does not revoke existing sessions — it adds a login
+ * method rather than rotating a credential that might be compromised.
+ */
+export const useSetPasswordMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (newPassword: string) =>
+            apiFetch<void>("/auth/set-password", { method: "POST", body: { newPassword } }),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.me }),
+    });
+};
 
 export const useMySessions = () =>
     useQuery({

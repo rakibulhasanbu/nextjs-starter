@@ -1,4 +1,4 @@
-import { UserRole } from "@/features/auth/types";
+import { UserProfile } from "@/features/auth/types";
 
 export enum UserStatus {
     PENDING_VERIFICATION = "PENDING_VERIFICATION",
@@ -13,9 +13,12 @@ export interface AdminUser {
     name: string | null;
     phone: string | null;
     avatarUrl: string | null;
-    role: UserRole;
+    roleIds: string[];
+    profile: UserProfile | null;
     status: UserStatus;
     emailVerifiedAt: string | null;
+    /** False for Google- or passkey-only accounts: offer set-password, not change-password. */
+    hasPassword: boolean;
     failedLoginAttempts: number;
     lockedUntil: string | null;
     deletedAt: string | null;
@@ -34,4 +37,13 @@ export interface AdminUserSession {
     lastUsedAt: string;
     expiresAt: string;
     revokedAt: string | null;
+}
+
+/** Request body for `PATCH /admin/users/:id` — roles are excluded by design, they have their own endpoint. */
+export interface AdminUpdateUserPayload {
+    email?: string;
+    name?: string;
+    username?: string;
+    phone?: string;
+    avatarUrl?: string;
 }

@@ -14,12 +14,14 @@ import { toast } from "@/components/ui/toast";
 import { ApiError } from "@/lib/api-client";
 import { useMe, useUpdateMeMutation } from "@/features/account/api";
 import { updateProfileFormSchema, UpdateProfileFormValues } from "@/features/account/schemas";
+import { UpdateMePayload } from "@/features/account/types";
 import { Gender } from "@/features/auth/types";
 
 const GENDER_OPTIONS = [
     { value: Gender.MALE, label: "Male" },
     { value: Gender.FEMALE, label: "Female" },
     { value: Gender.OTHER, label: "Other" },
+    { value: Gender.PREFER_NOT_TO_SAY, label: "Prefer not to say" },
 ];
 
 export const ProfileForm = () => {
@@ -37,19 +39,24 @@ export const ProfileForm = () => {
             name: me.name ?? "",
             username: me.username,
             phone: me.phone ?? "",
-            dateOfBirth: me.dateOfBirth ? me.dateOfBirth.slice(0, 10) : "",
-            gender: me.gender ?? "",
+            dateOfBirth: me.profile?.dateOfBirth ?? "",
+            gender: me.profile?.gender ?? "",
         });
     }, [me, reset]);
 
     const onSubmit = handleSubmit(async (values) => {
-        const payload: Record<string, unknown> = {};
+        const payload: UpdateMePayload = {};
         if (values.name && values.name !== me?.name) payload.name = values.name;
         if (values.username && values.username !== me?.username) payload.username = values.username;
         if (values.phone && values.phone !== me?.phone) payload.phone = values.phone;
-        if (values.dateOfBirth && values.dateOfBirth !== (me?.dateOfBirth?.slice(0, 10) ?? ""))
-            payload.dateOfBirth = values.dateOfBirth;
-        if (values.gender && values.gender !== me?.gender) payload.gender = values.gender;
+
+        // `dateOfBirth` and `gender` live on the nested `user_profiles` record —
+        // sending them at the top level is rejected by the backend's strictObject.
+        const profile: NonNullable<UpdateMePayload["profile"]> = {};
+        if (values.dateOfBirth && values.dateOfBirth !== (me?.profile?.dateOfBirth ?? ""))
+            profile.dateOfBirth = values.dateOfBirth;
+        if (values.gender && values.gender !== me?.profile?.gender) profile.gender = values.gender;
+        if (Object.keys(profile).length > 0) payload.profile = profile;
 
         if (Object.keys(payload).length === 0) return;
 

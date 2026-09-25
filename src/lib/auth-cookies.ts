@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 
+import { config } from "@/config";
 import { User } from "@/features/auth/types";
 
 export const AUTH_COOKIE_NAMES = {
@@ -10,11 +11,14 @@ export const AUTH_COOKIE_NAMES = {
     user: "user",
 } as const;
 
-const AUTH_COOKIE_MAX_AGE = {
-    accessToken: 60 * 60 * 24, // 1 day — short-lived, refreshed via refreshToken
-    refreshToken: 60 * 60 * 25 * 15, // 15 days
-    user: 60 * 60 * 24 * 15, // 15 days
-} as const;
+/**
+ * All three cookies share the refresh token's window. The access token inside
+ * is still short-lived (the backend's `JWT_ACCESS_TTL`, 15m by default) and the
+ * api client refreshes it on a 401 — but the *cookie* has to outlive it, because
+ * `proxy.ts` gates on cookie presence and expiring it early signs the user out
+ * while their refresh token is still good.
+ */
+const AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * config.refreshTokenTtlDays;
 
 const cookieOptions = (maxAge: number) => ({
     httpOnly: true,
@@ -34,15 +38,15 @@ export const setAuthCookies = async ({ accessToken, refreshToken, user }: AuthCo
     const cookieStore = await cookies();
 
     if (accessToken) {
-        cookieStore.set(AUTH_COOKIE_NAMES.accessToken, accessToken, cookieOptions(AUTH_COOKIE_MAX_AGE.accessToken));
+        cookieStore.set(AUTH_COOKIE_NAMES.accessToken, accessToken, cookieOptions(AUTH_COOKIE_MAX_AGE));
     }
 
     if (refreshToken) {
-        cookieStore.set(AUTH_COOKIE_NAMES.refreshToken, refreshToken, cookieOptions(AUTH_COOKIE_MAX_AGE.refreshToken));
+        cookieStore.set(AUTH_COOKIE_NAMES.refreshToken, refreshToken, cookieOptions(AUTH_COOKIE_MAX_AGE));
     }
 
     if (user) {
-        cookieStore.set(AUTH_COOKIE_NAMES.user, JSON.stringify(user), cookieOptions(AUTH_COOKIE_MAX_AGE.user));
+        cookieStore.set(AUTH_COOKIE_NAMES.user, JSON.stringify(user), cookieOptions(AUTH_COOKIE_MAX_AGE));
     }
 };
 
