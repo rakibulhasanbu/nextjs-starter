@@ -5,6 +5,7 @@ import { LinkButton } from "@/components/shared/link-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChangePasswordForm } from "@/features/account/components/change-password-form";
 import { DeleteAccountCard } from "@/features/account/components/delete-account-card";
+import { NotificationPreferencesCard } from "@/features/account/components/notification-preferences-card";
 import { TwoFactorAuthCard } from "@/features/two-factor/components/two-factor-auth-card";
 import { PasskeysCard } from "@/features/passkeys/components/passkeys-card";
 
@@ -25,6 +26,7 @@ export default function AccountSettingsPage() {
             </Card>
             <PasskeysCard />
             <TwoFactorAuthCard />
+            <NotificationPreferencesCard />
             <Card className="shadow-card">
                 <CardHeader>
                     <CardTitle>Sessions</CardTitle>

@@ -1,11 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api-client";
-import { AccountSession, AccountUser, UpdateMePayload } from "@/features/account/types";
+import {
+    AccountSession,
+    AccountUser,
+    NotificationPreferences,
+    UpdateMePayload,
+    UpdateNotificationPreferencesPayload,
+} from "@/features/account/types";
 
 export const accountKeys = {
     me: ["account", "me"] as const,
     sessions: ["account", "sessions"] as const,
+    notifications: ["account", "notifications"] as const,
 };
 
 export const useMe = () =>
@@ -76,3 +83,18 @@ export const useConfirmAccountDeletionMutation = () =>
     useMutation({
         mutationFn: (code: string) => apiFetch<void>("/auth/delete-account", { method: "POST", body: { code } }),
     });
+
+export const useNotificationPreferences = () =>
+    useQuery({
+        queryKey: accountKeys.notifications,
+        queryFn: () => apiFetch<NotificationPreferences>("/users/me/notifications"),
+    });
+
+export const useUpdateNotificationPreferencesMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: UpdateNotificationPreferencesPayload) =>
+            apiFetch<NotificationPreferences>("/users/me/notifications", { method: "PATCH", body: data }),
+        onSuccess: (data) => queryClient.setQueryData(accountKeys.notifications, data),
+    });
+};

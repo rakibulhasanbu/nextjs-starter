@@ -61,3 +61,13 @@ export interface UpdateMePayload {
         bio?: string;
     };
 }
+
+/** Shape of `GET/PATCH /users/me/notifications`. Missing row on the backend still resolves to all-true defaults. */
+export interface NotificationPreferences {
+    loginEmailNotification: boolean;
+    transactionsEmailNotification: boolean;
+    transactionsPushNotification: boolean;
+}
+
+/** Partial update — omitted channels keep their current value. */
+export type UpdateNotificationPreferencesPayload = Partial<NotificationPreferences>;
