@@ -207,13 +207,6 @@ export const loginWithGoogleAction = async (idToken: string) => {
     return establishSession(result.data);
 };
 
-/**
- * The passkey exchange happens in the browser (the WebAuthn call needs `window`),
- * so the resulting tokens arrive client-side. This puts them into the httpOnly
- * cookies `proxy.ts` reads, which only a server action can write.
- */
-export const establishPasskeySessionAction = async (tokens: AuthResponse) => establishSession(tokens);
-
 export const logoutAction = async () => {
     const refreshToken = await getRefreshTokenCookie();
     if (refreshToken) {

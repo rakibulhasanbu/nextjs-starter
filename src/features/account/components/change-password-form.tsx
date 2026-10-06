@@ -19,7 +19,7 @@ const describeError = (error: unknown) =>
     error instanceof ApiError ? error.message : "Something went wrong";
 
 /**
- * Accounts created through Google or a passkey have no password, and
+ * Accounts created through Google have no password, and
  * change-password rejects them (it needs a current one to verify). `hasPassword`
  * on `/users/me` is what tells the two cases apart.
  */

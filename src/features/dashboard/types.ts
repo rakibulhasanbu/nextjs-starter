@@ -17,7 +17,7 @@ export interface AdminUser {
     profile: UserProfile | null;
     status: UserStatus;
     emailVerifiedAt: string | null;
-    /** False for Google- or passkey-only accounts: offer set-password, not change-password. */
+    /** False for Google-only accounts: offer set-password, not change-password. */
     hasPassword: boolean;
     failedLoginAttempts: number;
     lockedUntil: string | null;

@@ -7,7 +7,6 @@ import { ChangePasswordForm } from "@/features/account/components/change-passwor
 import { DeleteAccountCard } from "@/features/account/components/delete-account-card";
 import { NotificationPreferencesCard } from "@/features/account/components/notification-preferences-card";
 import { TwoFactorAuthCard } from "@/features/two-factor/components/two-factor-auth-card";
-import { PasskeysCard } from "@/features/passkeys/components/passkeys-card";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -24,7 +23,6 @@ export default function AccountSettingsPage() {
                     <ChangePasswordForm />
                 </CardContent>
             </Card>
-            <PasskeysCard />
             <TwoFactorAuthCard />
             <NotificationPreferencesCard />
             <Card className="shadow-card">

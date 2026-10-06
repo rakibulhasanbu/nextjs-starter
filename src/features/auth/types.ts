@@ -81,7 +81,7 @@ export interface User {
     status: UserStatus;
     emailVerifiedAt: string | null;
     twoFactorEnabled: boolean;
-    /** False for Google- or passkey-only accounts: offer set-password, not change-password. */
+    /** False for Google-only accounts: offer set-password, not change-password. */
     hasPassword: boolean;
     createdAt: string;
     updatedAt: string;

@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { loginAction } from "@/features/auth/actions";
 import { signInFormSchema, SignInFormValues } from "@/features/auth/schemas";
-import { PasskeyEmailSignInButton } from "@/features/passkeys/components/passkey-email-sign-in-button";
-import { PasskeySignInButton } from "@/features/passkeys/components/passkey-sign-in-button";
 import { useAuthStore } from "@/store/auth-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -24,7 +22,7 @@ export const SignInForm = () => {
     const searchParams = useSearchParams();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const { control, handleSubmit, getValues } = useForm<SignInFormValues>({
+    const { control, handleSubmit } = useForm<SignInFormValues>({
         resolver: zodResolver(signInFormSchema),
         defaultValues: { email: "", password: "" },
     });
@@ -106,8 +104,6 @@ export const SignInForm = () => {
                 <LoadingButton type="submit" className="w-full" isLoading={isSubmitting}>
                     Sign in
                 </LoadingButton>
-                <PasskeySignInButton />
-                <PasskeyEmailSignInButton getEmail={() => getValues("email")} />
             </FieldGroup>
         </form>
     );

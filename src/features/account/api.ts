@@ -37,7 +37,7 @@ export const useChangePasswordMutation = () =>
     });
 
 /**
- * For accounts with no password yet (Google- or passkey-only). Unlike
+ * For accounts with no password yet (Google-only). Unlike
  * change-password, this does not revoke existing sessions — it adds a login
  * method rather than rotating a credential that might be compromised.
  */
