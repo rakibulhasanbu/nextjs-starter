@@ -16,3 +16,5 @@ minimumReleaseAgeExclude:
   - eslint-config-next@16.3.6
   - '@shadcn/registry@0.1.2'
   - shadcn@4.21.3
+overrides:
+  fast-uri: '>=3.1.9 <4'
