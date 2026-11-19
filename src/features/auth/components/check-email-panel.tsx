@@ -1,22 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { resendVerificationAction, verifyEmailAction } from "@/features/auth/actions";
+import { verifyEmailFormSchema, VerifyEmailFormValues } from "@/features/auth/schemas";
+import { useAuthStore } from "@/store/auth-store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MailIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 
-import { FormOTPInput } from "@/components/shared/form-OTP-input";
-import { LoadingButton } from "@/components/shared/loading-button";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { FieldGroup } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
-import { resendVerificationAction, verifyEmailAction } from "@/features/auth/actions";
-import { verifyEmailFormSchema, VerifyEmailFormValues } from "@/features/auth/schemas";
-import { useAuthStore } from "@/store/auth-store";
+import { FormOTPInput } from "@/components/shared/form-otp-input";
+import { LoadingButton } from "@/components/shared/loading-button";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -93,8 +92,8 @@ export const CheckEmailPanel = ({ email }: CheckEmailPanelProps) => {
           <EmptyDescription>
             {email ? (
               <>
-                We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>. Enter it
-                below to activate your account.
+                We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>. Enter it below
+                to activate your account.
               </>
             ) : (
               "We sent you a 6-digit code. Enter it below to activate your account."

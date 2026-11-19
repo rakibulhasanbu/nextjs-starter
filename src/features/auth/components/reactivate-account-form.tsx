@@ -1,19 +1,18 @@
 "use client";
 
 import { useState } from "react";
-
 import { useRouter } from "next/navigation";
 
+import { reactivateAccountAction } from "@/features/auth/actions";
+import { reactivateAccountFormSchema, ReactivateAccountFormValues } from "@/features/auth/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
-import { FormInput } from "@/components/shared/form-input";
-import { FormOTPInput } from "@/components/shared/form-OTP-input";
-import { LoadingButton } from "@/components/shared/loading-button";
 import { FieldGroup } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";
-import { reactivateAccountAction } from "@/features/auth/actions";
-import { reactivateAccountFormSchema, ReactivateAccountFormValues } from "@/features/auth/schemas";
+import { FormInput } from "@/components/shared/form-input";
+import { FormOTPInput } from "@/components/shared/form-otp-input";
+import { LoadingButton } from "@/components/shared/loading-button";
 
 type ReactivateAccountFormProps = {
   email?: string;

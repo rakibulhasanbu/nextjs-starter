@@ -75,23 +75,24 @@ export const DataTableFilter = ({ columnId, title, options, className }: DataTab
           {options.map((option) => {
             const checked = option.value === selected;
             return (
-              <button
+              <Button
                 key={option.value}
                 type="button"
                 onClick={() => toggle(option.value)}
                 aria-pressed={checked}
-                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                variant="ghost"
+                className="h-auto w-full justify-start gap-2 px-2 py-1.5 text-left text-sm font-normal"
               >
                 <span
                   className={cn(
                     "flex aspect-square size-4 shrink-0 items-center justify-center rounded-full border border-input",
-                    checked && "border-primary bg-primary",
+                    checked && "border-primary bg-primary"
                   )}
                 >
                   {checked && <span className="size-2 rounded-full bg-primary-foreground" />}
                 </span>
                 <span className="flex-1 truncate">{option.label}</span>
-              </button>
+              </Button>
             );
           })}
         </div>

@@ -5,6 +5,7 @@ import type { Country } from "react-phone-number-input";
 
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { RequiredMark } from "@/components/shared/required-mark";
 
 type TFormPhoneInput<T extends FieldValues> = {
   name: Path<T>;
@@ -42,7 +43,7 @@ export const FormPhoneInput = <T extends FieldValues>({
         <Field data-invalid={fieldState.invalid}>
           {label && (
             <FieldLabel htmlFor={name}>
-              {label} {showAsterisk ? required && <span className="text-red-500">*</span> : null}
+              {label} {showAsterisk ? required && <RequiredMark /> : null}
             </FieldLabel>
           )}
           <PhoneInput

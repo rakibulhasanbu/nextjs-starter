@@ -5,7 +5,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
-import { FormOTPInput } from "@/components/shared/form-OTP-input";
+import { FormOTPInput } from "@/components/shared/form-otp-input";
 import { LoadingButton } from "@/components/shared/loading-button";
 import { FieldGroup } from "@/components/ui/field";
 import { toast } from "@/components/ui/toast";

@@ -5,6 +5,7 @@ import { Control, Controller, FieldValues, Path } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
+import { RequiredMark } from "@/components/shared/required-mark";
 
 type TFormTextarea<T extends FieldValues> = {
   name: Path<T>;
@@ -38,7 +39,7 @@ export const FormTextarea = <T extends FieldValues>({
         <Field data-invalid={fieldState.invalid}>
           {label && (
             <FieldLabel htmlFor={name}>
-              {label} {showAsterisk ? required && <span className="text-red-500">*</span> : null}
+              {label} {showAsterisk ? required && <RequiredMark /> : null}
             </FieldLabel>
           )}
           <Textarea

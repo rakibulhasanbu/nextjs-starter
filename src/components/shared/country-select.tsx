@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { CheckIcon, ChevronDownIcon, SearchIcon } from "lucide-react";
-import { getCountries, getCountryCallingCode, type Country } from "react-phone-number-input/input";
 import flags from "react-phone-number-input/flags";
+import { getCountries, getCountryCallingCode, type Country } from "react-phone-number-input/input";
 import en from "react-phone-number-input/locale/en.json";
 
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { InputGroupAddon } from "@/components/ui/input-group";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Drawer,
   DrawerContent,
@@ -18,6 +17,9 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { InputGroupAddon } from "@/components/ui/input-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Text } from "@/components/ui/text";
 
 type CountrySelectProps = {
   value: Country;
@@ -41,9 +43,7 @@ const filterCountries = (query: string) => {
   if (!q) return COUNTRY_OPTIONS;
   return COUNTRY_OPTIONS.filter(
     (option) =>
-      option.name.toLowerCase().includes(q) ||
-      option.code.toLowerCase() === q ||
-      option.callingCode.startsWith(q)
+      option.name.toLowerCase().includes(q) || option.code.toLowerCase() === q || option.callingCode.startsWith(q)
   );
 };
 
@@ -126,9 +126,7 @@ const CountryList = ({ value, onSelect, autoFocus, className }: CountryListProps
           role="combobox"
           aria-expanded
           aria-controls="country-select-list"
-          aria-activedescendant={
-            options[activeIndex] ? `country-option-${options[activeIndex].code}` : undefined
-          }
+          aria-activedescendant={options[activeIndex] ? `country-option-${options[activeIndex].code}` : undefined}
           className="h-9 w-full rounded-md bg-muted/60 pr-3 pl-8 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/40"
         />
       </div>
@@ -141,7 +139,9 @@ const CountryList = ({ value, onSelect, autoFocus, className }: CountryListProps
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]"
       >
         {options.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">No country found.</p>
+          <Text variant="small" tone="muted" align="center" render={<p />} className="py-8 font-normal">
+            No country found.
+          </Text>
         ) : (
           options.map((option, index) => {
             const selected = option.code === value;
@@ -160,13 +160,9 @@ const CountryList = ({ value, onSelect, autoFocus, className }: CountryListProps
                 className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm transition-colors data-active:bg-accent data-active:text-accent-foreground"
               >
                 <CountryFlag country={option.code} />
-                <span className="w-12 shrink-0 text-muted-foreground tabular-nums">
-                  +{option.callingCode}
-                </span>
+                <span className="w-12 shrink-0 text-muted-foreground tabular-nums">+{option.callingCode}</span>
                 <span className="flex-1 truncate">{option.name}</span>
-                <CheckIcon
-                  className={cn("size-4 shrink-0 text-primary", !selected && "invisible")}
-                />
+                <CheckIcon className={cn("size-4 shrink-0 text-primary", !selected && "invisible")} />
               </button>
             );
           })
@@ -206,11 +202,7 @@ export const CountrySelect = ({ value, onChange, disabled, readOnly }: CountrySe
     return (
       <Drawer open={open} onOpenChange={setOpen}>
         <InputGroupAddon className={addonClassName}>
-          <DrawerTrigger
-            disabled={isDisabled}
-            aria-label={triggerLabel}
-            className={triggerClassName}
-          >
+          <DrawerTrigger disabled={isDisabled} aria-label={triggerLabel} className={triggerClassName}>
             <TriggerContent country={value} />
           </DrawerTrigger>
         </InputGroupAddon>
@@ -228,18 +220,12 @@ export const CountrySelect = ({ value, onChange, disabled, readOnly }: CountrySe
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <InputGroupAddon className={addonClassName}>
-        <PopoverTrigger
-          disabled={isDisabled}
-          aria-label={triggerLabel}
-          className={triggerClassName}
-        >
+        <PopoverTrigger disabled={isDisabled} aria-label={triggerLabel} className={triggerClassName}>
           <TriggerContent country={value} />
         </PopoverTrigger>
       </InputGroupAddon>
       <PopoverContent align="start" sideOffset={6} className="w-80 gap-0 p-0">
-        {open && (
-          <CountryList value={value} onSelect={handleSelect} autoFocus className="max-h-80" />
-        )}
+        {open && <CountryList value={value} onSelect={handleSelect} autoFocus className="max-h-80" />}
       </PopoverContent>
     </Popover>
   );

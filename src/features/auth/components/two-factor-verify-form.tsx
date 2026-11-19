@@ -1,18 +1,8 @@
 "use client";
 
 import { useState } from "react";
-
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-
-import { FormInput } from "@/components/shared/form-input";
-import { FormOTPInput } from "@/components/shared/form-OTP-input";
-import { LoadingButton } from "@/components/shared/loading-button";
-import { Button } from "@/components/ui/button";
-import { FieldGroup } from "@/components/ui/field";
-import { toast } from "@/components/ui/toast";
 import { login2faVerifyAction } from "@/features/auth/actions";
 import {
   twoFactorRecoveryFormSchema,
@@ -21,6 +11,16 @@ import {
   TwoFactorVerifyFormValues,
 } from "@/features/auth/schemas";
 import { useAuthStore } from "@/store/auth-store";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+
+import { Button } from "@/components/ui/button";
+import { FieldGroup } from "@/components/ui/field";
+import { Text } from "@/components/ui/text";
+import { toast } from "@/components/ui/toast";
+import { FormInput } from "@/components/shared/form-input";
+import { FormOTPInput } from "@/components/shared/form-otp-input";
+import { LoadingButton } from "@/components/shared/loading-button";
 
 type TwoFactorVerifyFormProps = {
   twoFactorToken?: string;
@@ -80,9 +80,9 @@ export const TwoFactorVerifyForm = ({ twoFactorToken, callbackUrl }: TwoFactorVe
   if (!twoFactorToken) {
     return (
       <FieldGroup>
-        <p className="text-sm text-muted-foreground">
+        <Text variant="small" tone="muted" render={<p />} className="leading-normal font-normal">
           This verification link is invalid or has expired. Please sign in again.
-        </p>
+        </Text>
       </FieldGroup>
     );
   }
@@ -103,7 +103,12 @@ export const TwoFactorVerifyForm = ({ twoFactorToken, callbackUrl }: TwoFactorVe
           <LoadingButton type="submit" className="w-full" isLoading={isSubmitting}>
             Verify
           </LoadingButton>
-          <Button type="button" variant="link" className="h-auto self-start p-0" onClick={() => setUseRecoveryCode(false)}>
+          <Button
+            type="button"
+            variant="link"
+            className="h-auto self-start p-0"
+            onClick={() => setUseRecoveryCode(false)}
+          >
             Use an authenticator code instead
           </Button>
         </FieldGroup>

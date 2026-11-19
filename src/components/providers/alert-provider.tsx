@@ -2,7 +2,7 @@
 
 import React, { createContext, useState } from "react";
 
-import { AlertDialogContent } from "@/components/shared/alert-dialogue";
+import { AlertDialogContent } from "@/components/shared/alert-dialog";
 import { Dialog } from "@/components/ui/dialog";
 
 export type ButtonOptionsType = {

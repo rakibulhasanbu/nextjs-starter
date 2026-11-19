@@ -36,12 +36,7 @@ const toValues = (raw: unknown): string[] => {
  * For "does this array cell contain any of the selected values" filters
  * (e.g. a tags column), use `filterFn: "arrIncludesSome"` instead.
  */
-export const DataTableFacetedFilter = ({
-  columnId,
-  title,
-  options,
-  className,
-}: DataTableFacetedFilterProps) => {
+export const DataTableFacetedFilter = ({ columnId, title, options, className }: DataTableFacetedFilterProps) => {
   const table = useDataTableContext();
   const column = table.getColumn(columnId);
 
@@ -91,28 +86,30 @@ export const DataTableFacetedFilter = ({
           {options.map((option) => {
             const checked = selected.has(option.value);
             return (
-              <button
+              <Button
                 key={option.value}
                 type="button"
                 onClick={() => toggle(option.value)}
-                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                variant="ghost"
+                className="h-auto w-full justify-start gap-2 px-2 py-1.5 text-left text-sm font-normal"
               >
                 <Checkbox checked={checked} className="pointer-events-none" tabIndex={-1} />
                 <span className="flex-1 truncate">{option.label}</span>
-              </button>
+              </Button>
             );
           })}
         </div>
         {selected.size > 0 && (
           <>
             <Separator className="mt-1" />
-            <button
+            <Button
               type="button"
               onClick={() => column.setFilterValue(undefined)}
-              className="w-full rounded-md px-2 py-1.5 text-center text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              variant="ghost"
+              className="h-auto w-full px-2 py-1.5 text-center text-sm font-normal text-muted-foreground"
             >
               Clear filter
-            </button>
+            </Button>
           </>
         )}
       </PopoverContent>

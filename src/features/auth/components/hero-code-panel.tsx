@@ -15,7 +15,7 @@ export const HeroCodePanel = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.4 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full min-w-0 max-w-md overflow-hidden rounded-2xl border border-border bg-foreground/[0.03] shadow-sm dark:bg-white/5"
+            className="w-full max-w-md min-w-0 overflow-hidden rounded-2xl border border-border bg-muted/40 shadow-card"
         >
             <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
                 <span className="size-2 rounded-full bg-muted-foreground/30" />
@@ -34,7 +34,9 @@ export const HeroCodePanel = () => {
                     {"\n"}
                     );
                     {"\n\n"}
-                    <span className={muted}>{"// session, roles, and refresh tokens\n// already wired up for you"}</span>
+                    <span className={muted}>
+                        {"// session, roles, and refresh tokens\n// already wired up for you"}
+                    </span>
                 </code>
             </pre>
         </motion.div>

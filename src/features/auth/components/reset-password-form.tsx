@@ -1,20 +1,19 @@
 "use client";
 
 import { useState } from "react";
-
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-
-import { FormOTPInput } from "@/components/shared/form-OTP-input";
-import { FormInput } from "@/components/shared/form-input";
-import { LoadingButton } from "@/components/shared/loading-button";
-import { FieldGroup } from "@/components/ui/field";
-import { toast } from "@/components/ui/toast";
 import { resetPasswordAction } from "@/features/auth/actions";
 import { newPasswordFormSchema, NewPasswordFormValues } from "@/features/auth/schemas";
 import { useAuthStore } from "@/store/auth-store";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+
+import { FieldGroup } from "@/components/ui/field";
+import { toast } from "@/components/ui/toast";
+import { FormInput } from "@/components/shared/form-input";
+import { FormOTPInput } from "@/components/shared/form-otp-input";
+import { LoadingButton } from "@/components/shared/loading-button";
 
 interface ResetPasswordFormProps {
   email: string;
